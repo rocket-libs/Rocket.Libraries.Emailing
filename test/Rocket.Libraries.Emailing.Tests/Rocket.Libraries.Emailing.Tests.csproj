@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Rocket.Libraries.Emailing\Rocket.Libraries.Emailing.csproj" />
+    <ProjectReference Include="..\..\src\Rocket.Libraries.Emailing\Rocket.Libraries.Emailing.csproj" />
   </ItemGroup>
 
   <ItemGroup>
