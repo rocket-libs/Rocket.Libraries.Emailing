@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Rocket.Libraries.Emailing.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -5,15 +6,23 @@ using System.Threading.Tasks;
 
 namespace Rocket.Libraries.Emailing.Services
 {
-    public class TemplatedEmailsService
+    public class Emailer
     {
+        private IConfiguration _configuration;
+        public Emailer(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
 
         public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string template, List<TemplatePlaceholder> placeholders)
         {
-            string body = GetWithPlaceholdersReplaced(GetBodyFromTemplate(template), placeholders);
+            var emailBuilder = new EmailBuilder()
+                .SetConfiguration(_configuration);
+
+            string body = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}\\{template}"), placeholders);
             subject = GetWithPlaceholdersReplaced(subject, placeholders);
 
-            return await new EmailBuilderService()
+            return await emailBuilder
                 .AddBody(body)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
@@ -22,7 +31,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         private string GetBodyFromTemplate(string template)
         {
-            using (var fs = new FileStream( $"./EmailTemplates/{template}", FileMode.Open,FileAccess.Read))
+            using (var fs = new FileStream(template, FileMode.Open,FileAccess.Read))
             {
                 using (var stream = new StreamReader(fs))
                 {

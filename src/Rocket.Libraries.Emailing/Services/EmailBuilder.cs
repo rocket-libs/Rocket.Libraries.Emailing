@@ -2,12 +2,13 @@ using System;
 using System.Threading.Tasks;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Configuration;
 using MimeKit;
 using Rocket.Libraries.Emailing.Models;
 
 namespace Rocket.Libraries.Emailing.Services
 {
-    public class EmailBuilderService
+    internal class EmailBuilder
     {
         private string _recepient;
         private string _subject;
@@ -15,9 +16,17 @@ namespace Rocket.Libraries.Emailing.Services
 
         private string _senderName;
         private string _sendEmail;
+        private EmailingSettings _emailingSettings;
 
+        public EmailingSettings EmailingSettings
+        {
+            get
+            {
+                return _emailingSettings;
+            }
+        }
 
-        public EmailBuilderService()
+        public EmailBuilder()
         {
             CleanUp();
         }
@@ -27,33 +36,39 @@ namespace Rocket.Libraries.Emailing.Services
             AddBody(string.Empty)
             .AddRecepient(string.Empty)
             .AddSubject(string.Empty)
-            .AddSender("sales@jattac-computing.com","Jattac.Service.Users Team");
+            .AddSender(string.Empty,string.Empty);
         }
 
         
 
-        public EmailBuilderService AddSender(string emailAddress,string name = null)
+        public EmailBuilder AddSender(string emailAddress,string name = null)
         {
             _sendEmail = emailAddress;
             _senderName = !string.IsNullOrEmpty(name) ? name : emailAddress;
             return this;
         }
 
-        public EmailBuilderService AddRecepient(string recepient)
+        public EmailBuilder AddRecepient(string recepient)
         {
             _recepient = recepient;
             return this;
         }
 
-        public EmailBuilderService AddSubject(string subject)
+        public EmailBuilder AddSubject(string subject)
         {
             _subject = subject;
             return this;
         }
 
-        public EmailBuilderService AddBody(string body)
+        public EmailBuilder AddBody(string body)
         {
             _body = body;
+            return this;
+        }
+
+        public EmailBuilder SetConfiguration(IConfiguration configuration)
+        {
+            _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
             return this;
         }
 
@@ -61,6 +76,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                
                 var emailMessage = new MimeMessage();
     
                 emailMessage.From.Add(new MailboxAddress(_senderName, _sendEmail));
