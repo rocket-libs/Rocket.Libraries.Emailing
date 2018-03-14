@@ -21,13 +21,13 @@ namespace TesterApplication
             {
                 new TemplatePlaceholder
                 {
-                    Placeholder = "test",
+                    Placeholder = "=text",
                     Text = "The quick brown fox jumps over the lazy dog"
                 }
             };
 
             new Emailer(builder.Build())
-                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "text.htm", placeholders);
+                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "text.htm", placeholders).ConfigureAwait(false);
         }
     }
 }

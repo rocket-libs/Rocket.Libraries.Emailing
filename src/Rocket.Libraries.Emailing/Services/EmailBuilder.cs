@@ -14,8 +14,7 @@ namespace Rocket.Libraries.Emailing.Services
         private string _subject;
         private string _body;
 
-        private string _senderName;
-        private string _sendEmail;
+        
         private EmailingSettings _emailingSettings;
 
         public EmailingSettings EmailingSettings
@@ -35,18 +34,10 @@ namespace Rocket.Libraries.Emailing.Services
         {
             AddBody(string.Empty)
             .AddRecepient(string.Empty)
-            .AddSubject(string.Empty)
-            .AddSender(string.Empty,string.Empty);
+            .AddSubject(string.Empty);
         }
 
         
-
-        public EmailBuilder AddSender(string emailAddress,string name = null)
-        {
-            _sendEmail = emailAddress;
-            _senderName = !string.IsNullOrEmpty(name) ? name : emailAddress;
-            return this;
-        }
 
         public EmailBuilder AddRecepient(string recepient)
         {
@@ -79,17 +70,18 @@ namespace Rocket.Libraries.Emailing.Services
                 
                 var emailMessage = new MimeMessage();
     
-                emailMessage.From.Add(new MailboxAddress(_senderName, _sendEmail));
+                emailMessage.From.Add(new MailboxAddress(_emailingSettings.SenderName, _emailingSettings.User));
                 emailMessage.To.Add(new MailboxAddress("", _recepient));
                 emailMessage.Subject = _subject;
                 emailMessage.Body = new TextPart("html") { Text = _body };
             
                 using (var client = new SmtpClient())
                 {
-                    await client.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls).ConfigureAwait(false);
-                    await client.AuthenticateAsync("rocket.documents1@gmail.com", "pentium1.2");
-                    await client.SendAsync(emailMessage).ConfigureAwait(false);
-                    await client.DisconnectAsync(true).ConfigureAwait(false);
+                    var secureSocketOptions = (SecureSocketOptions)_emailingSettings.SecureSocketOptions;
+                    await client.ConnectAsync(_emailingSettings.Server, _emailingSettings.Port, secureSocketOptions);
+                    await client.AuthenticateAsync(_emailingSettings.User, _emailingSettings.Password);
+                    await client.SendAsync(emailMessage);
+                    await client.DisconnectAsync(true);
                 }
                 return new EmailSendingResult { Succeeded = true };
                 

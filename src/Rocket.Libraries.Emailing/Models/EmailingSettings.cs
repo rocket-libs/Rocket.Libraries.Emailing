@@ -13,5 +13,6 @@ namespace Rocket.Libraries.Emailing.Models
         public string User { get; set; }
         public string Password { get; set; }
         public string TemplatesDirectory { get; set; }
+        public string SenderName { get; set; }
     }
 }
