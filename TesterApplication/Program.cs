@@ -27,7 +27,7 @@ namespace TesterApplication
             };
 
             new Emailer()
-                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold","<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name").ConfigureAwait(false);
+                .SendEmail("nyingimaina@gmail.com", "Have A Cold", "<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name");
         }
     }
 }

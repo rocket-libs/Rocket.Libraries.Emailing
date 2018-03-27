@@ -3,6 +3,7 @@ using Rocket.Libraries.Emailing.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Rocket.Libraries.Emailing.Services
@@ -27,7 +28,7 @@ namespace Rocket.Libraries.Emailing.Services
             return builder.Build();
         }
 
-        public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
+        public EmailSendingResult SendEmail(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
         {
             if(_configuration == null)
             {
@@ -39,12 +40,12 @@ namespace Rocket.Libraries.Emailing.Services
             var document = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}\\{template}"), placeholders);
             subject = GetWithPlaceholdersReplaced(subject, placeholders);
 
-            return await emailBuilder
+            return emailBuilder
                 .AddBody(body)
                 .AddAttachment(document, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
-                .BuildAsync();
+                .Build();
         }
 
         private string GetBodyFromTemplate(string template)
@@ -58,13 +59,13 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
-        private string GetWithPlaceholdersReplaced(string body,List<TemplatePlaceholder> placeholders)
+        private string GetWithPlaceholdersReplaced(string input,List<TemplatePlaceholder> placeholders)
         {
             foreach(var placeholder in placeholders)
             {
-                body = body.Replace(placeholder.Placeholder,placeholder.Text);
+                input = Regex.Replace(input, placeholder.Placeholder,placeholder.Text);
             }
-            return body;
+            return input;
         }
     }
 }

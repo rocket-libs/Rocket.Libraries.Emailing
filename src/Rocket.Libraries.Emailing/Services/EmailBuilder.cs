@@ -39,8 +39,9 @@ namespace Rocket.Libraries.Emailing.Services
         private void CleanUp()
         {
             AddBody(string.Empty)
-            .AddRecepient(string.Empty)
-            .AddSubject(string.Empty);
+                .AddAttachment(string.Empty, string.Empty)
+                .AddRecepient(string.Empty)
+                .AddSubject(string.Empty);
         }
 
         
@@ -75,7 +76,7 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
-        public async Task<EmailSendingResult> BuildAsync()
+        public EmailSendingResult Build()
         {
             try
             {
@@ -87,19 +88,21 @@ namespace Rocket.Libraries.Emailing.Services
                 emailMessage.Subject = _subject;
 
 
-
-                AddMultipart(emailMessage);
-
-                using (var client = new SmtpClient())
+                using (var stream = new MemoryStream(GetPdfStream()))
                 {
-                    var secureSocketOptions = (SecureSocketOptions)_emailingSettings.SecureSocketOptions;
-                    await client.ConnectAsync(_emailingSettings.Server, _emailingSettings.Port, secureSocketOptions);
-                    await client.AuthenticateAsync(_emailingSettings.User, _emailingSettings.Password);
-                    await client.SendAsync(emailMessage);
-                    await client.DisconnectAsync(true);
-                }
+                    AddMultipart(emailMessage, stream);
 
-                return new EmailSendingResult { Succeeded = true };
+                    using (var client = new SmtpClient())
+                    {
+                        var secureSocketOptions = (SecureSocketOptions)_emailingSettings.SecureSocketOptions;
+                        client.Connect(_emailingSettings.Server, _emailingSettings.Port, secureSocketOptions);
+                        client.Authenticate(_emailingSettings.User, _emailingSettings.Password);
+                        client.Send(emailMessage);
+                        client.Disconnect(true);
+                    }
+
+                    return new EmailSendingResult { Succeeded = true };
+                }
                 
             }
             catch(Exception e)
@@ -117,29 +120,27 @@ namespace Rocket.Libraries.Emailing.Services
         }
 
 
-        private void AddMultipart(MimeMessage emailMessage)
+        private void AddMultipart(MimeMessage emailMessage, MemoryStream stream)
         {
             var byteArray = Encoding.UTF8.GetBytes(_attachment);
             //byte[] byteArray = Encoding.ASCII.GetBytes(contents);
-            using (var stream = new MemoryStream(GetPdfStream()))
+            
+            var attachment = new MimePart("document", "pdf")
             {
-
-                var attachment = new MimePart("document", "pdf")
-                {
-                    Content = new MimeContent(stream),
-                    ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
-                    ContentTransferEncoding = ContentEncoding.Base64,
-                    FileName = $"{_attachmentName}.pdf"
-                };
+                Content = new MimeContent(stream),
+                ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                ContentTransferEncoding = ContentEncoding.Base64,
+                FileName = $"{_attachmentName}.pdf"
+            };
 
 
-                var body = new TextPart(TextFormat.Html) { Text = _body };
-                var multipart = new Multipart("mixed");
-                multipart.Add(body);
-                multipart.Add(attachment);
-                emailMessage.Body = multipart;
-            }
-
+            var body = new TextPart(TextFormat.Html) { Text = _body };
+            var multipart = new Multipart("mixed")
+            {
+                body,
+                attachment
+            };
+            emailMessage.Body = multipart;
         }
 
         private byte[] GetPdfStream()
@@ -164,7 +165,7 @@ namespace Rocket.Libraries.Emailing.Services
                 }
             };
 
-            var converter = new SynchronizedConverter(new PdfTools());
+            var converter = new BasicConverter(new PdfTools());
             return converter.Convert(doc);
         }
 
