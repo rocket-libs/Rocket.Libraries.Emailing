@@ -26,8 +26,8 @@ namespace TesterApplication
                 }
             };
 
-            new Emailer(builder.Build())
-                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "text.htm", placeholders).ConfigureAwait(false);
+            new Emailer()
+                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold","<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name").ConfigureAwait(false);
         }
     }
 }

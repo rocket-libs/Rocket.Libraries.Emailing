@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Rocket.Libraries.Emailing.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -9,21 +10,38 @@ namespace Rocket.Libraries.Emailing.Services
     public class Emailer
     {
         private IConfiguration _configuration;
-        public Emailer(IConfiguration configuration)
+        public Emailer()
         {
-            _configuration = configuration;
+            _configuration = GetConfig();
         }
 
-        public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string template, List<TemplatePlaceholder> placeholders)
+        private IConfiguration GetConfig()
         {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var appSettingsGlobal = "appsettings.json";
+            var appSettingsEnv = $"appsettings.{environmentName}.json";
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Environment.CurrentDirectory)
+                .AddJsonFile(appSettingsGlobal, optional: false, reloadOnChange: true)
+                .AddJsonFile(appSettingsEnv, optional: true);
+            return builder.Build();
+        }
+
+        public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
+        {
+            if(_configuration == null)
+            {
+                throw new Exception("Configuration is not set");
+            }
             var emailBuilder = new EmailBuilder()
                 .SetConfiguration(_configuration);
 
-            string body = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}\\{template}"), placeholders);
+            var document = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}\\{template}"), placeholders);
             subject = GetWithPlaceholdersReplaced(subject, placeholders);
 
             return await emailBuilder
                 .AddBody(body)
+                .AddAttachment(document, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
                 .BuildAsync();

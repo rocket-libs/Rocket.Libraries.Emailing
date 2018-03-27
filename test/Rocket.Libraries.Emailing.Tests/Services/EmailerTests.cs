@@ -15,10 +15,6 @@ namespace Rocket.Libraries.Emailing.Tests.Services
         [Fact]
         public async Task EmailGetsSent()
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(@"Services/appsettings.json", false);
-
             var placeholders = new List<TemplatePlaceholder>
             {
                 new TemplatePlaceholder
@@ -28,8 +24,8 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                 }
             };
 
-            await new Emailer(builder.Build())
-                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "text.htm", placeholders);
+            await new Emailer()
+                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "This is the body <b>Boldy</b>", "text.htm", placeholders,"attachment name");
         }
     }
 }
