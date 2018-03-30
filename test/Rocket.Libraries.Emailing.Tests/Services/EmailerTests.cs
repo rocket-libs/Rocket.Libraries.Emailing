@@ -12,7 +12,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
 {
     public class EmailerTests
     {
-        [Fact(Skip = "Cannot find the templates dir")]
+        [Fact]
         public async Task EmailGetsSent()
         {
             var placeholders = new List<TemplatePlaceholder>

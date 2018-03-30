@@ -37,7 +37,7 @@ namespace Rocket.Libraries.Emailing.Services
             var emailBuilder = new EmailBuilder()
                 .SetConfiguration(_configuration);
 
-            var document = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}\\{template}"), placeholders);
+            var document = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}/{template}"), placeholders);
             subject = GetWithPlaceholdersReplaced(subject, placeholders);
 
             return emailBuilder
