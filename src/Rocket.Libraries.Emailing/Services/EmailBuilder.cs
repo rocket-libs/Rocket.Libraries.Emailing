@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using DinkToPdf;
@@ -87,6 +88,7 @@ namespace Rocket.Libraries.Emailing.Services
                 emailMessage.To.Add(new MailboxAddress("", _recepient));
                 emailMessage.Subject = _subject;
 
+                LoadLib();
 
                 using (var stream = new MemoryStream(GetPdfStream()))
                 {
@@ -104,14 +106,6 @@ namespace Rocket.Libraries.Emailing.Services
                     return new EmailSendingResult { Succeeded = true };
                 }
                 
-            }
-            catch(Exception e)
-            {
-                return new EmailSendingResult 
-                {
-                    Succeeded = false,
-                    Exception = e
-                };
             }
             finally
             {
@@ -167,6 +161,23 @@ namespace Rocket.Libraries.Emailing.Services
 
             var converter = new BasicConverter(new PdfTools());
             return converter.Convert(doc);
+        }
+
+
+        private void LoadLib()
+        {
+            var architectureFolder = (IntPtr.Size == 8) ? "64bit" : "32bit";
+            var wkHtmlToPdfPath = Path.Combine(AppContext.BaseDirectory, $"libs/{architectureFolder}/");
+            foreach (var file in Directory.GetFiles(wkHtmlToPdfPath))
+            {
+                var targetFile = $"{AppContext.BaseDirectory}/{Path.GetFileName(file)}";
+                if (!File.Exists(targetFile))
+                {
+                    File.Copy(file, targetFile);
+                }
+            }
+            /*var context = new CustomAssemblyLoadContext();
+            context.LoadUnmanagedLibrary(wkHtmlToPdfPath);*/
         }
 
     }

@@ -12,7 +12,7 @@ namespace TesterApplication
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Console.WriteLine("Brave New World!");
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json",false);
@@ -26,8 +26,17 @@ namespace TesterApplication
                 }
             };
 
-            new Emailer()
-                .SendEmail("nyingimaina@gmail.com", "Have A Cold", "<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name");
+            try
+            {
+                new Emailer()
+                    .SendEmail("nyingimaina@gmail.com", "Have A Cold", "<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name");
+                Console.WriteLine("Check your inbox");
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return;
+            }
         }
     }
 }

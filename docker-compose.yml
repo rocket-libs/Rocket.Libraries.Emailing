@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  testerapplication:
+    image: testerapplication
+    build:
+      context: .
+      dockerfile: TesterApplication/Dockerfile
+    container_name: pdf_tester
