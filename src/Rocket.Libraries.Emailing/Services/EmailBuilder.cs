@@ -154,7 +154,8 @@ namespace Rocket.Libraries.Emailing.Services
                         PagesCount = true,
                         HtmlContent = _attachment,
                         WebSettings = { DefaultEncoding = "utf-8" },
-                        FooterSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 }
+                        FooterSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 },
+                        
                     }
                 }
             };
