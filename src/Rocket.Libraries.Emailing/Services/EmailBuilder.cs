@@ -10,6 +10,8 @@ using Microsoft.Extensions.Configuration;
 using MimeKit;
 using MimeKit.Text;
 using Rocket.Libraries.Emailing.Models;
+using SparkPostDotNet;
+using SparkPostDotNet.Transmissions;
 
 namespace Rocket.Libraries.Emailing.Services
 {
@@ -81,6 +83,17 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                var sparkPostClient = new SparkPostClient(null);
+                var transmission = new Transmission();
+                transmission.Content.From.EMail = _emailingSettings.SenderName;
+                transmission.Content.From.Name = _emailingSettings.User;
+                transmission.Content.Subject = _subject;
+                transmission.Content.Html = _body;
+                var recipient = new Recipient();
+                recipient.Address.EMail = _recepient;
+                transmission.Recipients.Add(recipient);
+                
+                await sparkPostClient.CreateTransmission(transmission);
 
                 var emailMessage = new MimeMessage();
     
