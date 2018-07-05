@@ -7,9 +7,13 @@ using DinkToPdf;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
 using Rocket.Libraries.Emailing.Models;
+using SparkPostDotNet;
+using SparkPostDotNet.Transmissions;
+using Options = Microsoft.Extensions.Options.Options;
 
 namespace Rocket.Libraries.Emailing.Services
 {
@@ -23,6 +27,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         
         private EmailingSettings _emailingSettings;
+        private IOptions<SparkPostOptions> _sparkPostOptions;
 
         public EmailingSettings EmailingSettings
         {
@@ -74,38 +79,35 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder SetConfiguration(IConfiguration configuration)
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
+            _sparkPostOptions =  Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
             return this;
         }
 
-        public EmailSendingResult Build()
+        public async Task<EmailSendingResult> BuildAsync()
         {
             try
             {
-
-                var emailMessage = new MimeMessage();
-    
-                emailMessage.From.Add(new MailboxAddress(_emailingSettings.SenderName, _emailingSettings.User));
-                emailMessage.To.Add(new MailboxAddress("", _recepient));
-                emailMessage.Subject = _subject;
-
-                LoadLib();
-
-                using (var stream = new MemoryStream(GetPdfStream()))
-                {
-                    AddMultipart(emailMessage, stream);
-
-                    using (var client = new SmtpClient())
-                    {
-                        var secureSocketOptions = (SecureSocketOptions)_emailingSettings.SecureSocketOptions;
-                        client.Connect(_emailingSettings.Server, _emailingSettings.Port, secureSocketOptions);
-                        client.Authenticate(_emailingSettings.User, _emailingSettings.Password);
-                        client.Send(emailMessage);
-                        client.Disconnect(true);
-                    }
-
-                    return new EmailSendingResult { Succeeded = true };
-                }
+                var sparkPostClient = new SparkPostClient(_sparkPostOptions);
+                var transmission = new Transmission();
+                transmission.Content.From.EMail = "noreply@rocketdocuments.com";
+                transmission.Content.From.Name = _emailingSettings.SenderName;
+                transmission.Content.Subject = _subject;
+                transmission.Content.Html = _body;
                 
+                var recipient = new Recipient();
+                recipient.Address.EMail = _recepient;
+                transmission.Recipients.Add(recipient);
+
+                AddAttachmentIfExists(transmission);
+                
+
+                await sparkPostClient.CreateTransmission(transmission);
+                return new EmailSendingResult { Succeeded = true };
+                
+            }
+            catch(Exception e)
+            {
+                throw e;
             }
             finally
             {
@@ -114,30 +116,26 @@ namespace Rocket.Libraries.Emailing.Services
         }
 
 
-        private void AddMultipart(MimeMessage emailMessage, MemoryStream stream)
+        private void AddAttachmentIfExists(Transmission transmission)
         {
-            var byteArray = Encoding.UTF8.GetBytes(_attachment);
-            //byte[] byteArray = Encoding.ASCII.GetBytes(contents);
-            
-            var attachment = new MimePart("document", "pdf")
+            var hasAttachment = !string.IsNullOrEmpty(_attachment);
+            if (hasAttachment)
             {
-                Content = new MimeContent(stream),
-                ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
-                ContentTransferEncoding = ContentEncoding.Base64,
-                FileName = $"{_attachmentName}.pdf"
-            };
-
-
-            var body = new TextPart(TextFormat.Html) { Text = _body };
-            var multipart = new Multipart("mixed")
+                LoadLib();
+                var attachment = new Attachment();
+                attachment.Data = GetPdfBytes();
+                attachment.Name = $"{_attachmentName}.pdf";
+                attachment.Type = "application/pdf";
+                transmission.Content.Attachments.Add(attachment);
+            }
+            else
             {
-                body,
-                attachment
-            };
-            emailMessage.Body = multipart;
+                return;
+            }
+
         }
 
-        private byte[] GetPdfStream()
+        private byte[] GetPdfBytes()
         {
             var doc = new HtmlToPdfDocument
             {
