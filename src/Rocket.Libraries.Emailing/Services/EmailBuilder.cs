@@ -7,11 +7,13 @@ using DinkToPdf;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
 using Rocket.Libraries.Emailing.Models;
 using SparkPostDotNet;
 using SparkPostDotNet.Transmissions;
+using Options = Microsoft.Extensions.Options.Options;
 
 namespace Rocket.Libraries.Emailing.Services
 {
@@ -25,6 +27,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         
         private EmailingSettings _emailingSettings;
+        private IOptions<SparkPostOptions> _sparkPostOptions;
 
         public EmailingSettings EmailingSettings
         {
@@ -34,7 +37,7 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
-        public EmailBuilder(ISparkPos)
+        public EmailBuilder()
         {
             CleanUp();
         }
@@ -76,6 +79,7 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder SetConfiguration(IConfiguration configuration)
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
+            _sparkPostOptions =  Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
             return this;
         }
 
@@ -83,7 +87,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
-                var sparkPostClient = new SparkPostClient(null);
+                var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = _emailingSettings.SenderName;
                 transmission.Content.From.Name = _emailingSettings.User;
