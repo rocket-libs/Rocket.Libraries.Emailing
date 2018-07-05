@@ -5,6 +5,10 @@ using Microsoft.Extensions.Configuration.Json;
 using Rocket.Libraries.Emailing.Services;
 using System.Collections.Generic;
 using Rocket.Libraries.Emailing.Models;
+using Microsoft.Extensions.DependencyInjection;
+using SparkPostDotNet;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore;
 
 namespace TesterApplication
 {
@@ -12,10 +16,15 @@ namespace TesterApplication
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Brave New World!");
-            var builder = new ConfigurationBuilder()
+
+            /*var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json",false);
+                .AddJsonFile("appsettings.json",false);*/
+
+
+            Environment.SetEnvironmentVariable("SPARKPOST_APIKEY", "fa0291b031781bd5dff87f1f4c6ebade277af621");
+            Environment.SetEnvironmentVariable("SPARKPOST_SENDINGDOMAIN", "mail.rocketdocuments.com");
+            BuildWebHost(args);
 
             var placeholders = new List<TemplatePlaceholder>
             {
@@ -29,7 +38,9 @@ namespace TesterApplication
             try
             {
                 new Emailer()
-                    .SendEmail("nyingimaina@gmail.com", "Have A Cold", "<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name");
+                    .SendEmailAsync("nyingimaina@gmail.com", "Integration Test", "<b>Bold</b> text then <u>Underline</u>", "text.htm", placeholders, "attachment name")
+                    .GetAwaiter()
+                    .GetResult();
                 Console.WriteLine("Check your inbox");
             }
             catch(Exception e)
@@ -38,5 +49,10 @@ namespace TesterApplication
                 return;
             }
         }
+
+        public static IWebHost BuildWebHost(string[] args) =>
+        WebHost.CreateDefaultBuilder(args)
+            .UseStartup<Startup>()
+            .Build();
     }
 }

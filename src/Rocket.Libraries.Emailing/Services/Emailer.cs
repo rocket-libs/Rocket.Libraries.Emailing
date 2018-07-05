@@ -28,7 +28,7 @@ namespace Rocket.Libraries.Emailing.Services
             return builder.Build();
         }
 
-        public EmailSendingResult SendEmail(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
+        public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
         {
             if(_configuration == null)
             {
@@ -40,12 +40,12 @@ namespace Rocket.Libraries.Emailing.Services
             var document = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}/{template}"), placeholders);
             subject = GetWithPlaceholdersReplaced(subject, placeholders);
 
-            return emailBuilder
+            return await emailBuilder
                 .AddBody(body)
                 .AddAttachment(document, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
-                .Build();
+                .BuildAsync();
         }
 
         private string GetBodyFromTemplate(string template)
