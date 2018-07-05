@@ -34,7 +34,7 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
-        public EmailBuilder()
+        public EmailBuilder(ISparkPos)
         {
             CleanUp();
         }
@@ -79,7 +79,7 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
-        public EmailSendingResult Build()
+        public async Task<EmailSendingResult> BuildAsync()
         {
             try
             {
@@ -94,8 +94,9 @@ namespace Rocket.Libraries.Emailing.Services
                 transmission.Recipients.Add(recipient);
                 
                 await sparkPostClient.CreateTransmission(transmission);
+                return new EmailSendingResult { Succeeded = true };
 
-                var emailMessage = new MimeMessage();
+                /*var emailMessage = new MimeMessage();
     
                 emailMessage.From.Add(new MailboxAddress(_emailingSettings.SenderName, _emailingSettings.User));
                 emailMessage.To.Add(new MailboxAddress("", _recepient));
@@ -117,7 +118,7 @@ namespace Rocket.Libraries.Emailing.Services
                     }
 
                     return new EmailSendingResult { Succeeded = true };
-                }
+                }*/
                 
             }
             finally

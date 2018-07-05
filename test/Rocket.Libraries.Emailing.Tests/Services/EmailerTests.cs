@@ -24,8 +24,8 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                 }
             };
 
-            new Emailer()
-                .SendEmail("nyingimaina@gmail.com", "Have A Cold", "This is the body <b>Boldy</b>", "text.htm", placeholders,"attachment name");
+            await new Emailer()
+                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "This is the body <b>Boldy</b>", "text.htm", placeholders,"attachment name");
         }
     }
 }
