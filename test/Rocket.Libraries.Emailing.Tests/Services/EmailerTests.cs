@@ -15,6 +15,9 @@ namespace Rocket.Libraries.Emailing.Tests.Services
         [Fact]
         public async Task EmailGetsSent()
         {
+            Environment.SetEnvironmentVariable("SPARKPOST_APIKEY", "fa0291b031781bd5dff87f1f4c6ebade277af621");
+            Environment.SetEnvironmentVariable("SPARKPOST_SENDINGDOMAIN", "mail.rocketdocuments.com");
+
             var placeholders = new List<TemplatePlaceholder>
             {
                 new TemplatePlaceholder
@@ -25,7 +28,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
             };
 
             await new Emailer()
-                .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "This is the body <b>Boldy</b>", "text.htm", placeholders,"attachment name");
+                .SendEmailAsync("nyingimaina@gmail.com", "Integration Tests", "The following text should be <b>Bold</b>", "text.htm", placeholders,"attachment name");
         }
     }
 }

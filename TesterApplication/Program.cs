@@ -23,7 +23,7 @@ namespace TesterApplication
 
 
             Environment.SetEnvironmentVariable("SPARKPOST_APIKEY", "fa0291b031781bd5dff87f1f4c6ebade277af621");
-            Environment.SetEnvironmentVariable("SPARKPOST_SENDINGDOMAIN", "blah");
+            Environment.SetEnvironmentVariable("SPARKPOST_SENDINGDOMAIN", "mail.rocketdocuments.com");
             BuildWebHost(args);
 
             var placeholders = new List<TemplatePlaceholder>
@@ -38,8 +38,9 @@ namespace TesterApplication
             try
             {
                 new Emailer()
-                    .SendEmailAsync("nyingimaina@gmail.com", "Have A Cold", "<b>Bold</b> <u>Underline</u>", "text.htm", placeholders, "attachment name")
-                    .ConfigureAwait(true);
+                    .SendEmailAsync("nyingimaina@gmail.com", "Integration Test", "<b>Bold</b> text then <u>Underline</u>", "text.htm", placeholders, "attachment name")
+                    .GetAwaiter()
+                    .GetResult();
                 Console.WriteLine("Check your inbox");
             }
             catch(Exception e)
