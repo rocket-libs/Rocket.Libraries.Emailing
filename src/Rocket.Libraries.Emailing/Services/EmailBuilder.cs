@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using DinkToPdf;
@@ -11,7 +12,7 @@ using Options = Microsoft.Extensions.Options.Options;
 
 namespace Rocket.Libraries.Emailing.Services
 {
-    internal class EmailBuilder
+    public class EmailBuilder
     {
         private string _recepient;
         private string _subject;
@@ -22,8 +23,12 @@ namespace Rocket.Libraries.Emailing.Services
         
         private EmailingSettings _emailingSettings;
         private IOptions<SparkPostOptions> _sparkPostOptions;
+        private TemplateReader _templateReader;
+        private PdfWriter _pdfWriter;
+        private PlaceholderWriter _placeholderWriter;
+        private List<TemplatePlaceholder> _placeholders;
 
-        public EmailingSettings EmailingSettings
+        private EmailingSettings EmailingSettings
         {
             get
             {
@@ -31,24 +36,52 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
+        private TemplateReader TemplateReader
+        {
+            get
+            {
+                if(_templateReader == null)
+                {
+                    _templateReader = new TemplateReader(EmailingSettings);
+                }
+                return _templateReader;
+            }
+        }
+
+        private PdfWriter PdfWriter
+        {
+            get
+            {
+                if(_pdfWriter == null)
+                {
+                    _pdfWriter = new PdfWriter();
+                }
+                return _pdfWriter;
+            }
+        }
+
+        private PlaceholderWriter PlaceholderWriter
+        {
+            get
+            {
+                if(_placeholderWriter == null)
+                {
+                    _placeholderWriter = new PlaceholderWriter();
+                }
+                return _placeholderWriter;
+            }
+        }
+
         public EmailBuilder()
         {
+            SetConfiguration(new ConfigReader().ReadConfiguration());
             CleanUp();
         }
 
-        private void CleanUp()
-        {
-            AddBody(string.Empty)
-                .AddAttachment(string.Empty, string.Empty)
-                .AddRecepient(string.Empty)
-                .AddSubject(string.Empty);
-        }
-
-        
+        [Obsolete("Use the 'Add' methods of the builder instead of this parameterized constructor")]
         public EmailBuilder AddAttachment(string html, string attachmentName)
         {
-            _attachment = html;
-            _attachmentName = attachmentName;
+            AddAttachment(html, attachmentName);
             return this;
         }
 
@@ -64,13 +97,25 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
-        public EmailBuilder AddBody(string body)
+        public EmailBuilder AddBodyAsTemplate(string templateFile)
+        {
+            var body = TemplateReader.GetContentFromTemplate(templateFile);
+            AddBodyAsText(body);
+            return this;
+        }
+
+        public EmailBuilder AddPlaceholders(List<TemplatePlaceholder> placeholders)
+        {
+            _placeholders = placeholders;
+        }
+
+        public EmailBuilder AddBodyAsText(string body)
         {
             _body = body;
             return this;
         }
 
-        public EmailBuilder SetConfiguration(IConfiguration configuration)
+        internal EmailBuilder SetConfiguration(IConfiguration configuration)
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
             _sparkPostOptions =  Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
@@ -84,9 +129,9 @@ namespace Rocket.Libraries.Emailing.Services
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = "noreply@rocketdocuments.com";
-                transmission.Content.From.Name = _emailingSettings.SenderName;
-                transmission.Content.Subject = _subject;
-                transmission.Content.Html = _body;
+                transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_emailingSettings.SenderName,_placeholders);
+                transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject,_placeholders);
+                transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body,_placeholders);
                 
                 var recipient = new Recipient();
                 recipient.Address.EMail = _recepient;
@@ -109,15 +154,13 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
-
         private void AddAttachmentIfExists(Transmission transmission)
         {
             var hasAttachment = !string.IsNullOrEmpty(_attachment);
             if (hasAttachment)
             {
-                LoadLib();
                 var attachment = new Attachment();
-                attachment.Data = GetPdfBytes();
+                attachment.Data = PdfWriter.GetPdfBytes(PlaceholderWriter.GetWithPlaceholdersReplaced(_attachment,_placeholders));
                 attachment.Name = $"{_attachmentName}.pdf";
                 attachment.Type = "application/pdf";
                 transmission.Content.Attachments.Add(attachment);
@@ -129,49 +172,17 @@ namespace Rocket.Libraries.Emailing.Services
 
         }
 
-        private byte[] GetPdfBytes()
-        {
-            var doc = new HtmlToPdfDocument
-            {
-                 GlobalSettings =
-                {
-                    ColorMode = ColorMode.Color,
-                    Orientation = Orientation.Portrait,
-                    PaperSize = PaperKind.A4,
-                },
-                Objects =
-                {
-                    new ObjectSettings()
-                    {
-                        PagesCount = true,
-                        HtmlContent = _attachment,
-                        WebSettings = { DefaultEncoding = "utf-8" },
-                        FooterSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 },
-                        
-                    }
-                }
-            };
+        
 
-            var converter = new BasicConverter(new PdfTools());
-            return converter.Convert(doc);
+        private void CleanUp()
+        {
+            AddBodyAsText(string.Empty)
+                .AddAttachment(string.Empty, string.Empty)
+                .AddRecepient(string.Empty)
+                .AddSubject(string.Empty);
         }
 
-
-        private void LoadLib()
-        {
-            var architectureFolder = (IntPtr.Size == 8) ? "64bit" : "32bit";
-            var wkHtmlToPdfPath = Path.Combine(AppContext.BaseDirectory, $"libs/{architectureFolder}/");
-            foreach (var file in Directory.GetFiles(wkHtmlToPdfPath))
-            {
-                var targetFile = $"{AppContext.BaseDirectory}/{Path.GetFileName(file)}";
-                if (!File.Exists(targetFile))
-                {
-                    File.Copy(file, targetFile);
-                }
-            }
-            /*var context = new CustomAssemblyLoadContext();
-            context.LoadUnmanagedLibrary(wkHtmlToPdfPath);*/
-        }
+        
 
     }
 }
