@@ -1,12 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.IO;
-using Microsoft.Extensions.Configuration.Json;
+﻿using System;
 using Rocket.Libraries.Emailing.Services;
 using System.Collections.Generic;
 using Rocket.Libraries.Emailing.Models;
-using Microsoft.Extensions.DependencyInjection;
-using SparkPostDotNet;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
 

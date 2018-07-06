@@ -1,15 +1,9 @@
 using System;
 using System.IO;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using DinkToPdf;
-using MailKit.Net.Smtp;
-using MailKit.Security;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using MimeKit;
-using MimeKit.Text;
 using Rocket.Libraries.Emailing.Models;
 using SparkPostDotNet;
 using SparkPostDotNet.Transmissions;
