@@ -1,10 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
-using Rocket.Libraries.Emailing.Models;
+﻿using Rocket.Libraries.Emailing.Models;
 using Rocket.Libraries.Emailing.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -28,7 +25,14 @@ namespace Rocket.Libraries.Emailing.Tests.Services
             };
 
             await new Emailer()
-                .SendEmailAsync("nyingimaina@gmail.com", "Integration Tests", "The following text should be <b>Bold</b>", "text.htm", placeholders,"attachment name");
+                .SendEmailAsync(
+                "nyingimaina@gmail.com",
+                "Integration Tests",
+                $"This integration test was run on {DateTime.Now.ToLongDateString()} at {DateTime.Now.ToLongTimeString()}",
+                "text.htm",
+                placeholders,
+                "attachment name"
+                );
         }
     }
 }
