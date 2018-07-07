@@ -38,12 +38,10 @@ namespace Rocket.Libraries.Emailing.Services
             var emailBuilder = new EmailBuilder()
                 .SetConfiguration(_configuration);
 
-            var document = GetWithPlaceholdersReplaced(GetContentFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}/{template}"), placeholders);
-            subject = GetWithPlaceholdersReplaced(subject, placeholders);
-
             return await emailBuilder
+                .AddPlaceholders(placeholders)
                 .AddBodyAsText(body)
-                .AddAttachment(document, attachmentName)
+                .AddAttachment(template, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
                 .BuildAsync();

@@ -17,7 +17,7 @@ namespace Rocket.Libraries.Emailing.Services
         private string _recepient;
         private string _subject;
         private string _body;
-        private string _attachment;
+        private string _attachmentFile;
         private string _attachmentName;
 
         
@@ -78,10 +78,10 @@ namespace Rocket.Libraries.Emailing.Services
             CleanUp();
         }
 
-        [Obsolete("Use the 'Add' methods of the builder instead of this parameterized constructor")]
-        public EmailBuilder AddAttachment(string html, string attachmentName)
+        public EmailBuilder AddAttachment(string attachementFile, string attachmentName)
         {
-            AddAttachment(html, attachmentName);
+            _attachmentFile = attachementFile;
+            _attachmentName = attachmentName;
             return this;
         }
 
@@ -107,6 +107,7 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder AddPlaceholders(List<TemplatePlaceholder> placeholders)
         {
             _placeholders = placeholders;
+            return this;
         }
 
         public EmailBuilder AddBodyAsText(string body)
@@ -156,11 +157,12 @@ namespace Rocket.Libraries.Emailing.Services
 
         private void AddAttachmentIfExists(Transmission transmission)
         {
-            var hasAttachment = !string.IsNullOrEmpty(_attachment);
+            var hasAttachment = !string.IsNullOrEmpty(_attachmentFile);
             if (hasAttachment)
             {
                 var attachment = new Attachment();
-                attachment.Data = PdfWriter.GetPdfBytes(PlaceholderWriter.GetWithPlaceholdersReplaced(_attachment,_placeholders));
+                var attachmentContent = TemplateReader.GetContentFromTemplate(_attachmentFile);
+                attachment.Data = PdfWriter.GetPdfBytes(PlaceholderWriter.GetWithPlaceholdersReplaced(attachmentContent, _placeholders));
                 attachment.Name = $"{_attachmentName}.pdf";
                 attachment.Type = "application/pdf";
                 transmission.Content.Attachments.Add(attachment);
