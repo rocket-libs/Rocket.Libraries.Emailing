@@ -127,6 +127,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                FailIfContentMissing();
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = "noreply@rocketdocuments.com";
@@ -152,6 +153,24 @@ namespace Rocket.Libraries.Emailing.Services
             finally
             {
                 CleanUp();
+            }
+        }
+
+
+        private void FailIfContentMissing()
+        {
+            var contents = new Dictionary<string, string>
+            {
+                {"Subject", _subject },
+                {"Body", _body },
+                {"Recipient", _recepient }
+            };
+            foreach (var item in contents)
+            {
+                if(string.IsNullOrEmpty(item.Value))
+                {
+                    throw new Exception($"No '{item.Key}' was found in your email message");
+                }
             }
         }
 

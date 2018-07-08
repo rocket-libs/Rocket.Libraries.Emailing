@@ -44,5 +44,36 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                 .AddSubject("Kitchen Sink =c")
                 .BuildAsync();
         }
+
+
+        [Fact]
+        public async Task VerifyMissingRecipentIsReported()
+        {
+            var emailBuilder = new EmailBuilder()
+                .AddBodyAsText("Body")
+                .AddSubject("Subject");
+            var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
+            Assert.Contains("Recipient", ex.Message);
+        }
+
+        [Fact]
+        public async Task VerifyMissingBodyIsReported()
+        {
+            var emailBuilder = new EmailBuilder()
+                .AddRecepient("Body")
+                .AddSubject("Subject");
+            var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
+            Assert.Contains("Body", ex.Message);
+        }
+
+        [Fact]
+        public async Task VerifyMissingSubjectIsReported()
+        {
+            var emailBuilder = new EmailBuilder()
+                .AddBodyAsText("Body")
+                .AddRecepient("Subject");
+            var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
+            Assert.Contains("Subject", ex.Message);
+        }
     }
 }

@@ -17,7 +17,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         public string GetContentFromTemplate(string template)
         {
-            var templatePath = $"{_emailingSettings.TemplatesDirectory}\\{template}";
+            var templatePath = $@"{_emailingSettings.TemplatesDirectory}/{template}";
             ThrowExceptionIfInvalid(templatePath);
             using (var fs = new FileStream(templatePath, FileMode.Open, FileAccess.Read))
             {
