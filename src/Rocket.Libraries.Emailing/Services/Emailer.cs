@@ -28,44 +28,23 @@ namespace Rocket.Libraries.Emailing.Services
             return builder.Build();
         }
 
+        [Obsolete("Please use email builder for more fine-tuning and clearer process.")]
         public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
         {
-            if(_configuration == null)
+            if (_configuration == null)
             {
                 throw new Exception("Configuration is not set");
             }
             var emailBuilder = new EmailBuilder()
                 .SetConfiguration(_configuration);
 
-            var document = GetWithPlaceholdersReplaced(GetBodyFromTemplate($"{emailBuilder.EmailingSettings.TemplatesDirectory}/{template}"), placeholders);
-            subject = GetWithPlaceholdersReplaced(subject, placeholders);
-
             return await emailBuilder
-                .AddBody(body)
-                .AddAttachment(document, attachmentName)
+                .AddPlaceholders(placeholders)
+                .AddBodyAsText(body)
+                .AddAttachment(template, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
                 .BuildAsync();
-        }
-
-        private string GetBodyFromTemplate(string template)
-        {
-            using (var fs = new FileStream(template, FileMode.Open,FileAccess.Read))
-            {
-                using (var stream = new StreamReader(fs))
-                {
-                    return stream.ReadToEnd();
-                }
-            }
-        }
-
-        private string GetWithPlaceholdersReplaced(string input,List<TemplatePlaceholder> placeholders)
-        {
-            foreach(var placeholder in placeholders)
-            {
-                input = Regex.Replace(input, placeholder.Placeholder,placeholder.Text);
-            }
-            return input;
         }
     }
 }

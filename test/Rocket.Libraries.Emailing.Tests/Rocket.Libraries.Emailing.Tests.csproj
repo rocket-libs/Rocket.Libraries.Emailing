@@ -30,6 +30,9 @@
     <None Update="Services\appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="Templates\body.htm">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Templates\text.htm">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
