@@ -120,6 +120,14 @@ namespace Rocket.Libraries.Emailing.Services
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
             _sparkPostOptions =  Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
+            if(_emailingSettings == null)
+            {
+                throw new NullReferenceException("Could not find settings for emailing in your appsettings.json file");
+            }
+            if(_sparkPostOptions == null)
+            {
+                throw new NullReferenceException("Could not find SparkPost integration settings in your appsettings.json file");
+            }
             return this;
         }
 
