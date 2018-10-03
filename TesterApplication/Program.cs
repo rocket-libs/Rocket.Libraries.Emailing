@@ -1,44 +1,27 @@
 ﻿using System;
-using Rocket.Libraries.Emailing.Services;
-using System.Collections.Generic;
-using Rocket.Libraries.Emailing.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
+using TesterApplication.Tests;
 
 namespace TesterApplication
 {
-    class Program
+    internal class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
-
             /*var builder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json",false);*/
-
 
             Environment.SetEnvironmentVariable("SPARKPOST_APIKEY", "fa0291b031781bd5dff87f1f4c6ebade277af621");
             Environment.SetEnvironmentVariable("SPARKPOST_SENDINGDOMAIN", "mail.rocketdocuments.com");
             BuildWebHost(args);
 
-            var placeholders = new List<TemplatePlaceholder>
-            {
-                new TemplatePlaceholder
-                {
-                    Placeholder = "=text",
-                    Text = "The quick brown fox jumps over the lazy dog"
-                }
-            };
-
             try
             {
-                new Emailer()
-                    .SendEmailAsync("nyingimaina@gmail.com", "Integration Test", "<b>Bold</b> text then <u>Underline</u>", "text.htm", placeholders, "attachment name")
-                    .GetAwaiter()
-                    .GetResult();
-                Console.WriteLine("Check your inbox");
+                new LoopBlocksTester().FillOutRequest();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e.Message);
                 return;

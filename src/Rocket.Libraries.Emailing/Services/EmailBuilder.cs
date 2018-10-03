@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
-using DinkToPdf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Rocket.Libraries.Emailing.Models;
@@ -20,7 +18,6 @@ namespace Rocket.Libraries.Emailing.Services
         private string _attachmentFile;
         private string _attachmentName;
 
-        
         private EmailingSettings _emailingSettings;
         private IOptions<SparkPostOptions> _sparkPostOptions;
         private TemplateReader _templateReader;
@@ -40,7 +37,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             get
             {
-                if(_templateReader == null)
+                if (_templateReader == null)
                 {
                     _templateReader = new TemplateReader(EmailingSettings);
                 }
@@ -52,7 +49,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             get
             {
-                if(_pdfWriter == null)
+                if (_pdfWriter == null)
                 {
                     _pdfWriter = new PdfWriter();
                 }
@@ -64,7 +61,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             get
             {
-                if(_placeholderWriter == null)
+                if (_placeholderWriter == null)
                 {
                     _placeholderWriter = new PlaceholderWriter();
                 }
@@ -119,12 +116,12 @@ namespace Rocket.Libraries.Emailing.Services
         internal EmailBuilder SetConfiguration(IConfiguration configuration)
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
-            _sparkPostOptions =  Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
-            if(_emailingSettings == null)
+            _sparkPostOptions = Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
+            if (_emailingSettings == null)
             {
                 throw new NullReferenceException("Could not find settings for emailing in your appsettings.json file");
             }
-            if(_sparkPostOptions == null)
+            if (_sparkPostOptions == null)
             {
                 throw new NullReferenceException("Could not find SparkPost integration settings in your appsettings.json file");
             }
@@ -139,22 +136,20 @@ namespace Rocket.Libraries.Emailing.Services
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = "noreply@rocketdocuments.com";
-                transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_emailingSettings.SenderName,_placeholders);
-                transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject,_placeholders);
-                transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body,_placeholders);
-                
+                transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_emailingSettings.SenderName, _placeholders);
+                transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
+                transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
+
                 var recipient = new Recipient();
                 recipient.Address.EMail = _recepient;
                 transmission.Recipients.Add(recipient);
 
                 AddAttachmentIfExists(transmission);
-                
 
                 await sparkPostClient.CreateTransmission(transmission);
                 return new EmailSendingResult { Succeeded = true };
-                
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 throw e;
             }
@@ -163,7 +158,6 @@ namespace Rocket.Libraries.Emailing.Services
                 CleanUp();
             }
         }
-
 
         private void FailIfContentMissing()
         {
@@ -175,7 +169,7 @@ namespace Rocket.Libraries.Emailing.Services
             };
             foreach (var item in contents)
             {
-                if(string.IsNullOrEmpty(item.Value))
+                if (string.IsNullOrEmpty(item.Value))
                 {
                     throw new Exception($"No '{item.Key}' was found in your email message");
                 }
@@ -198,10 +192,7 @@ namespace Rocket.Libraries.Emailing.Services
             {
                 return;
             }
-
         }
-
-        
 
         private void CleanUp()
         {
@@ -210,8 +201,5 @@ namespace Rocket.Libraries.Emailing.Services
                 .AddRecepient(string.Empty)
                 .AddSubject(string.Empty);
         }
-
-        
-
     }
 }
