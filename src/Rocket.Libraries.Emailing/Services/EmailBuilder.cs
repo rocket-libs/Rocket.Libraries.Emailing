@@ -120,6 +120,14 @@ namespace Rocket.Libraries.Emailing.Services
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
             _sparkPostOptions =  Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
+            if(_emailingSettings == null)
+            {
+                throw new NullReferenceException("Could not find settings for emailing in your appsettings.json file");
+            }
+            if(_sparkPostOptions == null)
+            {
+                throw new NullReferenceException("Could not find SparkPost integration settings in your appsettings.json file");
+            }
             return this;
         }
 
@@ -127,6 +135,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                FailIfContentMissing();
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = "noreply@rocketdocuments.com";
@@ -152,6 +161,24 @@ namespace Rocket.Libraries.Emailing.Services
             finally
             {
                 CleanUp();
+            }
+        }
+
+
+        private void FailIfContentMissing()
+        {
+            var contents = new Dictionary<string, string>
+            {
+                {"Subject", _subject },
+                {"Body", _body },
+                {"Recipient", _recepient }
+            };
+            foreach (var item in contents)
+            {
+                if(string.IsNullOrEmpty(item.Value))
+                {
+                    throw new Exception($"No '{item.Key}' was found in your email message");
+                }
             }
         }
 
