@@ -1,6 +1,8 @@
 ﻿using Rocket.Libraries.Emailing.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing
 {
@@ -12,19 +14,23 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing
             TemplateLines = templateLines;
         }
 
-        public object ValuesObject { get; }
+        public object ValuesObject { get; set; }
         public List<string> TemplateLines { get; }
 
         public abstract PreprocessingResult PreProcess();
 
         protected string GetEnclosedText(string targetLine, string openingText, string closingText, int startIndex)
         {
+            if (string.IsNullOrEmpty(targetLine))
+            {
+                return string.Empty;
+            }
             if (targetLine.Length <= startIndex)
             {
                 throw new Exception($"Cannot perform search for text on string of length '{targetLine.Length}' beginning on character '{startIndex}'");
             }
             var openingIndex = targetLine.IndexOf(openingText, startIndex);
-            if (openingIndex <= 0)
+            if (openingIndex < 0)
             {
                 return string.Empty;
             }
@@ -33,7 +39,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing
             {
                 return string.Empty;
             }
-            var subStringLength = closingIndex - closingText.Length - openingIndex;
+            var subStringLength = closingIndex - closingText.Length - openingIndex + 1;
             var subStringStart = openingIndex + openingText.Length;
             if (subStringLength <= 0)
             {
@@ -42,10 +48,9 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing
             return targetLine.Substring(subStringStart, subStringLength);
         }
 
-        protected TagPair GetFirstTagPair(string line, string startWith)
+        protected TagPair GetFirstTagPair(string line, string prefix)
         {
-            const string charsToTrimFromStart = "<";
-            var indexOfOpening = line.IndexOf(startWith);
+            var indexOfOpening = line.IndexOf(prefix);
             if (indexOfOpening < 0)
             {
                 return null;
@@ -56,13 +61,26 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing
                 return null;
             }
             var valueLength = indexOfClosing - indexOfOpening;
-            var substringStart = charsToTrimFromStart.Length;
-            var substringLength = indexOfClosing - charsToTrimFromStart.Length;
-            var rawTag = line.Substring(substringStart, substringLength);
-            return new TagPair
+            var rawTag = line.Substring(indexOfOpening + 1, valueLength - 1);
+            return new TagPair(prefix.Substring(1), rawTag);
+        }
+
+        protected PropertyInfo GetProperty(string tagPrefix, string propertyName, object parentObject = null)
+        {
+            if (parentObject == null)
             {
-                RawTag = rawTag
-            };
+                parentObject = ValuesObject;
+            }
+            var targetProperty = parentObject.GetType().GetProperties()
+                .FirstOrDefault(prop => prop.Name.Equals(propertyName, StringComparison.CurrentCultureIgnoreCase));
+            if (targetProperty == null)
+            {
+                throw new Exception($"No property matches the placeholder '{tagPrefix}{propertyName}");
+            }
+            else
+            {
+                return targetProperty;
+            }
         }
     }
 }

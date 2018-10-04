@@ -9,7 +9,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
 {
     public class LoopBlocksPreprocessor : PreProcessor
     {
-        private const string BlockTagStart = "<lb-";
+        private const string BlockTagPrefix = "<lb-";
 
         public LoopBlocksPreprocessor(object valuesObject, List<string> templateLines)
             : base(valuesObject, templateLines)
@@ -41,13 +41,13 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
 
         private bool LineContainsStartOfBlock(string line)
         {
-            var indexOfStarting = line.IndexOf(BlockTagStart);
+            var indexOfStarting = line.IndexOf(BlockTagPrefix);
             return indexOfStarting >= 0;
         }
 
         private PreprocessingResult InjectBlocks(int index)
         {
-            var blockTags = GetFirstTagPair(TemplateLines[index], BlockTagStart);
+            var blockTags = GetFirstTagPair(TemplateLines[index], BlockTagPrefix);
             if (blockTags == null)
             {
                 return null;
@@ -69,7 +69,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             else
             {
                 var propertyName = GetAssociatedPropertyName(rawTag);
-                var targetProperty = GetProperty(propertyName);
+                var targetProperty = GetProperty(BlockTagPrefix, propertyName);
                 return InjectCopiesOfBlock(blockContent, targetProperty, index);
             }
         }
@@ -98,14 +98,21 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             var list = targetProperty.GetValue(ValuesObject) as ICollection;
             var listEnumerator = list.GetEnumerator();
             var listItemIndex = 0;
+            var nestingStartTag = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStartRawTag);
+            var nestingStopTag = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStopRawTag);
+
             while (listEnumerator.MoveNext())
             {
-                var newLines = new List<string>();
+                var newLines = new List<string>
+                {
+                    $"{nestingStartTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStartTag.ClosingTag}"
+                };
                 for (var i = 0; i < blockContent.Count; i++)
                 {
                     var processedLine = GetLineWithInnerPlaceHoldersReplaced(blockContent[i], innerPlaceholders, i, targetProperty.Name, listEnumerator.Current, preprocessingResult, listItemIndex);
                     newLines.Add(processedLine);
                 }
+                newLines.Add($"{nestingStopTag.OpeningTag}{targetProperty.Name}{nestingStopTag.ClosingTag}");
                 preprocessingResult.TemplateLines.InsertRange(index, newLines);
                 index += newLines.Count;
                 listItemIndex++;
@@ -254,7 +261,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
 
         private string GetAssociatedPropertyName(string rawTag)
         {
-            return rawTag.Substring(BlockTagStart.Length - 1);
+            return rawTag.Substring(BlockTagPrefix.Length - 1);
         }
 
         private int GetPropertyElementLength(PropertyInfo targetProperty)
@@ -275,20 +282,6 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                 {
                     return asCollection.Count;
                 }
-            }
-        }
-
-        private PropertyInfo GetProperty(string propertyName)
-        {
-            var targetProperty = ValuesObject.GetType().GetProperties()
-                .FirstOrDefault(prop => prop.Name.Equals(propertyName, StringComparison.CurrentCultureIgnoreCase));
-            if (targetProperty == null)
-            {
-                throw new Exception($"No property matches the placeholder '{BlockTagStart}{propertyName}");
-            }
-            else
-            {
-                return targetProperty;
             }
         }
     }

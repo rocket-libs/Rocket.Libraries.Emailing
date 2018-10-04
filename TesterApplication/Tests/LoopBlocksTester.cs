@@ -29,7 +29,7 @@ namespace TesterApplication.Tests
             {
                 new Mbl
                 {
-                    HblsInformation = new List<string>
+                    HouseBillsInformation = new List<string>
                     {
                         "A","B"
                     },
@@ -37,7 +37,7 @@ namespace TesterApplication.Tests
                 },
                 new Mbl
                 {
-                    HblsInformation = new List<string>
+                    HouseBillsInformation = new List<string>
                     {
                         "1","2","3"
                     },
