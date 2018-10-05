@@ -50,10 +50,10 @@ namespace TesterApplication.Tests
             await new EmailBuilder()
                 .AddBodyAsTemplate("Request-Telex.htm")
                 .AddSubject("Testing sending of looped placeholders")
-                .AddRecepient("nyingimaina@gmail.com")
                 .AddRecepient("nyingi@auto-kenya.com")
-                .AddRecepient("nyingi.maina@gmail.com")
+                .AddRecepient("nyingimaina@gmail.com")
                 .AddPlaceholdersObject(telexRequestInformation)
+                .SetSender("nyingi@rocketdocuments.com", "Nyingi's Rocket Email")
                 .AddPlaceholders(new List<Rocket.Libraries.Emailing.Models.TemplatePlaceholder>
                 {
                     new Rocket.Libraries.Emailing.Models.TemplatePlaceholder

@@ -28,6 +28,7 @@ namespace Rocket.Libraries.Emailing.Services
         private List<TemplatePlaceholder> _placeholders = new List<TemplatePlaceholder>();
         private object _placeholdersObject;
         private List<string> _bodyTemplateLines;
+        private SenderInformation _senderInformation;
 
         private EmailingSettings EmailingSettings
         {
@@ -122,6 +123,16 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
+        public EmailBuilder SetSender(string email, string name)
+        {
+            _senderInformation = new SenderInformation
+            {
+                SenderEmail = email,
+                SenderName = name
+            };
+            return this;
+        }
+
         internal EmailBuilder SetConfiguration(IConfiguration configuration)
         {
             _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
@@ -145,8 +156,8 @@ namespace Rocket.Libraries.Emailing.Services
                 FailIfContentMissing();
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
-                transmission.Content.From.EMail = "noreply@rocketdocuments.com";
-                transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_emailingSettings.SenderName, _placeholders);
+                transmission.Content.From.EMail = _senderInformation.SenderEmail;
+                transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_senderInformation.SenderName, _placeholders);
                 transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
                 transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
 
@@ -209,7 +220,9 @@ namespace Rocket.Libraries.Emailing.Services
             var contents = new Dictionary<string, string>
             {
                 {"Subject", _subject },
-                {"Body", _body }
+                {"Body", _body },
+                {"Sender Email", _senderInformation?.SenderEmail },
+                {"Sender Name", _senderInformation?.SenderName }
             };
             foreach (var item in contents)
             {

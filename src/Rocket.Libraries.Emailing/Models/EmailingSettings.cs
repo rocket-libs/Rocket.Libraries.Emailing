@@ -3,6 +3,5 @@
     public class EmailingSettings
     {
         public string TemplatesDirectory { get; set; }
-        public string SenderName { get; set; }
     }
 }
