@@ -10,32 +10,55 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
 {
     public class LoopsInlinePreprocessor : PreProcessor
     {
+        private class NestingInformation
+        {
+            public NestingInformation(int index, object Obj)
+            {
+                Index = index;
+                this.Obj = Obj;
+            }
+
+            public int Index { get; }
+            public object Obj { get; }
+        }
+
+        private object CurrentValuesObject => _nestingStack?.First()?.Obj;
+
         private const string InLineTagPrefix = "<lv-";
         private PreprocessingResult _preprocessingResult = new PreprocessingResult();
-        private Stack<object> _valueObjectsStack = new Stack<object>();
+        private Stack<NestingInformation> _nestingStack = new Stack<NestingInformation>();
+
         private TagPair nestingStartTags = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStartRawTag);
+
         private TagPair nestingStopTags = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStopRawTag);
 
         public LoopsInlinePreprocessor(object valuesObject, List<string> templateLines)
              : base(valuesObject, templateLines)
         {
-            _valueObjectsStack.Push(valuesObject);
+            _nestingStack.Push(new NestingInformation(0, valuesObject));
         }
 
         public override PreprocessingResult PreProcess()
         {
-            _preprocessingResult = new PreprocessingResult
+            try
             {
-                Placeholders = new List<TemplatePlaceholder>()
-            };
-            for (var i = 0; i < TemplateLines.Count; i++)
-            {
-                var line = NestInIfRequired(TemplateLines[i]);
-                line = NestOutIfRequired(line);
-                TemplateLines[i] = GetLinePreprocessed(line);
+                _preprocessingResult = new PreprocessingResult
+                {
+                    Placeholders = new List<TemplatePlaceholder>()
+                };
+                for (var i = 0; i < TemplateLines.Count; i++)
+                {
+                    var line = NestInIfRequired(TemplateLines[i]);
+                    line = NestOutIfRequired(line);
+                    TemplateLines[i] = GetLinePreprocessed(line);
+                }
+                _preprocessingResult.TemplateLines = TemplateLines;
+                return _preprocessingResult;
             }
-            _preprocessingResult.TemplateLines = TemplateLines;
-            return _preprocessingResult;
+            catch (Exception e)
+            {
+                throw;
+            }
         }
 
         private string NestInIfRequired(string line)
@@ -49,7 +72,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 var bits = newObjectDescription.Split('-');
                 var listProperty = GetProperty(string.Empty, bits[0]);
-                var listValue = listProperty.GetValue(ValuesObject);
+                var listValue = listProperty.GetValue(CurrentValuesObject);
                 var enumerator = (listValue as ICollection).GetEnumerator();
                 var targetIndex = int.Parse(bits[1]);
                 var currentIndex = 0;
@@ -57,9 +80,10 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                 {
                     if (currentIndex == targetIndex)
                     {
-                        _valueObjectsStack.Push(enumerator.Current);
+                        _nestingStack.Push(new NestingInformation(targetIndex, enumerator.Current));
                         return string.Empty;
                     }
+                    currentIndex++;
                 }
                 throw new Exception("Could not find object to read from in nested list");
             }
@@ -74,7 +98,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             }
             else
             {
-                _valueObjectsStack.Pop();
+                _nestingStack.Pop();
                 return string.Empty;
             }
         }
@@ -94,7 +118,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
 
         private string BindTag(TagPair inlineTags, string line)
         {
-            var listProperty = GetProperty(InLineTagPrefix, inlineTags.UnPrefixedTag, _valueObjectsStack.First());
+            var listProperty = GetProperty(InLineTagPrefix, inlineTags.UnPrefixedTag, CurrentValuesObject);
             var placeholder = GetEnclosedText(line, inlineTags.OpeningTag, inlineTags.ClosingTag, 0);
             var valuePropertyName = GetValuePropertyName(placeholder);
             return InsertPlaceholders(line, listProperty, inlineTags, valuePropertyName);
@@ -124,46 +148,96 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             return bits;
         }
 
-        private string InsertPlaceholders(string line, PropertyInfo listProperty, TagPair inlineTags, string valuePropertyName)
+        private IEnumerator GetEnumerator(PropertyInfo listProperty)
         {
-            var value = listProperty.GetValue(ValuesObject);
+            var value = listProperty.GetValue(CurrentValuesObject);
             if (value == null)
             {
-                return string.Empty;
+                return null;
             }
             var valueAsList = value as ICollection;
             if (valueAsList == null)
             {
-                throw new Exception("Only lists are supported");
+                throw new Exception("Only lists are supported for looping in templates");
             }
             else
             {
-                var enumerator = valueAsList.GetEnumerator();
-                var originalMiddle = GetTagInnerText(line, inlineTags);
-                var outerText = GetTextBorderingTag(line, originalMiddle, inlineTags);
-                var newMiddle = string.Empty;
-                var counter = 0;
-                while (enumerator.MoveNext())
-                {
-                    var itemValue = enumerator.Current.GetType().GetProperties()
-                        .ToList().First(a => a.Name.Equals(valuePropertyName, StringComparison.CurrentCultureIgnoreCase))
-                        .GetValue(enumerator.Current);
-                    var indexedPlaceholderName = "{{" + valuePropertyName + "-" + counter + "}}";
-                    newMiddle += originalMiddle.Replace("{{" + valuePropertyName + "}}", indexedPlaceholderName);
-                    var placeHolderValue = string.Empty;
-                    if (itemValue != null)
-                    {
-                        placeHolderValue = itemValue.ToString();
-                    }
-                    _preprocessingResult.Placeholders.Add(new TemplatePlaceholder
-                    {
-                        Placeholder = indexedPlaceholderName,
-                        Text = placeHolderValue
-                    });
-                    counter++;
-                }
-                return $"{outerText[0]}{newMiddle}{outerText[1]}";
+                return valueAsList.GetEnumerator();
             }
+        }
+
+        private string GetListObjectValueFromExplicitPropertyName(IEnumerator enumerator, string valuePropertyName)
+        {
+            var itemValue = enumerator.Current.GetType().GetProperties()
+                    .ToList().First(a => a.Name.Equals(valuePropertyName, StringComparison.CurrentCultureIgnoreCase))
+                    .GetValue(enumerator.Current);
+            if (itemValue == null)
+            {
+                return string.Empty;
+            }
+            else
+            {
+                return itemValue.ToString();
+            }
+        }
+
+        private string GetListObjectValueFromByToString(IEnumerator enumerator)
+        {
+            var itemValue = enumerator.Current;
+
+            if (itemValue == null)
+            {
+                return string.Empty;
+            }
+            else
+            {
+                return itemValue.ToString();
+            }
+        }
+
+        private string GetListObjectValue(IEnumerator enumerator, bool isToStringPlaceholder, string valuePropertyName)
+        {
+            var placeHolderValue = string.Empty;
+            if (isToStringPlaceholder)
+            {
+                placeHolderValue = GetListObjectValueFromByToString(enumerator);
+            }
+            else
+            {
+                placeHolderValue = GetListObjectValueFromExplicitPropertyName(enumerator, valuePropertyName);
+            }
+            return placeHolderValue;
+        }
+
+        private string GetIndexedPlaceholderName(int listIndex, int valueIndex, string valuePropertyName, string ownerObjectName)
+        {
+            return "{{" + ownerObjectName + "-" + listIndex + "-" + valuePropertyName + "-" + valueIndex + "}}";
+        }
+
+        private string InsertPlaceholders(string line, PropertyInfo listProperty, TagPair inlineTags, string valuePropertyName)
+        {
+            var isToStringPlaceholder = valuePropertyName.Equals(LoopsPreprocessor.ToStringPlaceholder, StringComparison.CurrentCultureIgnoreCase);
+            var ownerObjectName = CurrentValuesObject.GetType().Name;
+            var nestedListIndex = _nestingStack.First().Index;
+
+            var enumerator = GetEnumerator(listProperty);
+            var originalMiddle = GetTagInnerText(line, inlineTags);
+            var outerText = GetTextBorderingTag(line, originalMiddle, inlineTags);
+            var newMiddle = string.Empty;
+            var valueIndex = 0;
+            while (enumerator.MoveNext())
+            {
+                var indexedPlaceholderName = GetIndexedPlaceholderName(nestedListIndex, valueIndex, valuePropertyName, ownerObjectName);
+                newMiddle += originalMiddle.Replace("{{" + valuePropertyName + "}}", indexedPlaceholderName);
+                var placeHolderValue = GetListObjectValue(enumerator, isToStringPlaceholder, valuePropertyName);
+                _preprocessingResult.Placeholders.Add(new TemplatePlaceholder
+                {
+                    Placeholder = indexedPlaceholderName,
+                    Text = placeHolderValue
+                });
+                valueIndex++;
+            }
+            return $"{outerText[0]}{newMiddle}{outerText[1]}";
         }
     }
 }

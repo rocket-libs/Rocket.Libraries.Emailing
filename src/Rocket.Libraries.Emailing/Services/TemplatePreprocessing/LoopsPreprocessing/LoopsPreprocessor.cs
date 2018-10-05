@@ -9,6 +9,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
     {
         public const string ObjectNestingStartRawTag = "nesting-start";
         public const string ObjectNestingStopRawTag = "nesting-stop";
+        public const string ToStringPlaceholder = "%s";
 
         public LoopsPreprocessor(object valuesObject, List<string> templateLines)
             : base(valuesObject, templateLines)

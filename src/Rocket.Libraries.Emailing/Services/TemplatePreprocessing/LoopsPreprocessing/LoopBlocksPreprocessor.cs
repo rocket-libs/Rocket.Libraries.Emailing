@@ -120,6 +120,18 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             return preprocessingResult;
         }
 
+        private string GetReplacementPlaceholder(string propertyName, string placeholderName, bool isToStringPlaceholder, int listItemIndex)
+        {
+            if (isToStringPlaceholder)
+            {
+                return "{{" + placeholderName + "}}";
+            }
+            else
+            {
+                return $"{{{{{propertyName}-{listItemIndex}-{placeholderName}}}}}";
+            }
+        }
+
         private string GetLineWithInnerPlaceHoldersReplaced(string blockContentLine, Dictionary<int, List<string>> innerPlaceholders, int index, string propertyName, object currentObject, PreprocessingResult preprocessingResult, int listItemIndex)
         {
             if (innerPlaceholders.ContainsKey(index))
@@ -127,9 +139,10 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                 foreach (var placeholderName in innerPlaceholders[index])
                 {
                     var originalPlaceHolder = $"{{{{{placeholderName}}}}}";
-                    var replacementPlaceHolder = $"{{{{{propertyName}-{listItemIndex}-{placeholderName}}}}}";
+                    var isToStringPlaceholder = placeholderName.Equals(LoopsPreprocessor.ToStringPlaceholder, StringComparison.CurrentCultureIgnoreCase);
+                    var replacementPlaceHolder = GetReplacementPlaceholder(propertyName, placeholderName, isToStringPlaceholder, listItemIndex);
 
-                    var insertPlaceholderNow = placeholderName != "$";
+                    var insertPlaceholderNow = isToStringPlaceholder == false;
                     if (insertPlaceholderNow)
                     {
                         var value = GetObjectValue(currentObject, placeholderName);
