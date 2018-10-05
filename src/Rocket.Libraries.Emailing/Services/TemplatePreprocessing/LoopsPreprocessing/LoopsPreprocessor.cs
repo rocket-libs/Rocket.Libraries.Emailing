@@ -20,7 +20,19 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
         {
             var blocksResult = new LoopBlocksPreprocessor(ValuesObject, TemplateLines).PreProcess();
             var inlineResult = new LoopsInlinePreprocessor(ValuesObject, blocksResult.TemplateLines).PreProcess();
-            return null;
+            var finalResult = GetFinalResult(blocksResult, inlineResult);
+            return finalResult;
+        }
+
+        private PreprocessingResult GetFinalResult(PreprocessingResult blocksResult, PreprocessingResult inlineResult)
+        {
+            var finalResult = new PreprocessingResult
+            {
+                Placeholders = inlineResult.Placeholders,
+                TemplateLines = inlineResult.TemplateLines
+            };
+            finalResult.Placeholders.AddRange(blocksResult.Placeholders);
+            return finalResult;
         }
     }
 }

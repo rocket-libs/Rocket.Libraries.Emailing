@@ -19,13 +19,16 @@ namespace TesterApplication
 
             try
             {
-                new LoopBlocksTester().FillOutRequest();
+                new LoopBlocksTester().SendLoopedBodyTestAsync().GetAwaiter().GetResult();
+                Console.WriteLine("Succeeded");
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
                 return;
             }
+            Console.WriteLine("Hit Key To Exit");
+            Console.ReadKey();
         }
 
         public static IWebHost BuildWebHost(string[] args) =>

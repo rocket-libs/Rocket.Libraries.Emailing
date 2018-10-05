@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Rocket.Libraries.Emailing.Models;
+using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
 using SparkPostDotNet;
 using SparkPostDotNet.Transmissions;
 using Options = Microsoft.Extensions.Options.Options;
@@ -12,7 +14,7 @@ namespace Rocket.Libraries.Emailing.Services
 {
     public class EmailBuilder
     {
-        private string _recepient;
+        private List<string> _recepients = new List<string>();
         private string _subject;
         private string _body;
         private string _attachmentFile;
@@ -23,7 +25,9 @@ namespace Rocket.Libraries.Emailing.Services
         private TemplateReader _templateReader;
         private PdfWriter _pdfWriter;
         private PlaceholderWriter _placeholderWriter;
-        private List<TemplatePlaceholder> _placeholders;
+        private List<TemplatePlaceholder> _placeholders = new List<TemplatePlaceholder>();
+        private object _placeholdersObject;
+        private List<string> _bodyTemplateLines;
 
         private EmailingSettings EmailingSettings
         {
@@ -75,6 +79,12 @@ namespace Rocket.Libraries.Emailing.Services
             CleanUp();
         }
 
+        public EmailBuilder AddPlaceholdersObject(object placeholdersObject)
+        {
+            this._placeholdersObject = placeholdersObject;
+            return this;
+        }
+
         public EmailBuilder AddAttachment(string attachementFile, string attachmentName)
         {
             _attachmentFile = attachementFile;
@@ -84,7 +94,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         public EmailBuilder AddRecepient(string recepient)
         {
-            _recepient = recepient;
+            _recepients.Add(recepient);
             return this;
         }
 
@@ -96,8 +106,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         public EmailBuilder AddBodyAsTemplate(string templateFile)
         {
-            var body = TemplateReader.GetContentFromTemplate(templateFile);
-            AddBodyAsText(body);
+            _bodyTemplateLines = TemplateReader.GetContentFromTemplate(templateFile);
             return this;
         }
 
@@ -132,6 +141,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                PreprocessObjectTemplatesIfRequired();
                 FailIfContentMissing();
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
@@ -140,9 +150,7 @@ namespace Rocket.Libraries.Emailing.Services
                 transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
                 transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
 
-                var recipient = new Recipient();
-                recipient.Address.EMail = _recepient;
-                transmission.Recipients.Add(recipient);
+                InjectRecepients(transmission);
 
                 AddAttachmentIfExists(transmission);
 
@@ -159,13 +167,49 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
+        private void InjectRecepients(Transmission transmission)
+        {
+            foreach (var bcc in _recepients)
+            {
+                var recipient = new Recipient();
+                recipient.Address.EMail = bcc;
+                transmission.Recipients.Add(recipient);
+            }
+        }
+
+        private void PreprocessObjectTemplatesIfRequired()
+        {
+            if (_placeholdersObject == null)
+            {
+                return;
+            }
+            FailIfContentNotArrayForObjectPlaceholders();
+            var result = new LoopsPreprocessor(_placeholdersObject, _bodyTemplateLines).PreProcess();
+            AddBodyAsText(GetStringFromList(result.TemplateLines));
+            _placeholders.AddRange(result.Placeholders);
+        }
+
+        private void FailIfContentNotArrayForObjectPlaceholders()
+        {
+            if (_placeholdersObject == null)
+            {
+                return;
+            }
+            else
+            {
+                if (_bodyTemplateLines == null)
+                {
+                    throw new Exception("Cannot preprocess strings, only lists are allowed");
+                }
+            }
+        }
+
         private void FailIfContentMissing()
         {
             var contents = new Dictionary<string, string>
             {
                 {"Subject", _subject },
-                {"Body", _body },
-                {"Recipient", _recepient }
+                {"Body", _body }
             };
             foreach (var item in contents)
             {
@@ -174,6 +218,17 @@ namespace Rocket.Libraries.Emailing.Services
                     throw new Exception($"No '{item.Key}' was found in your email message");
                 }
             }
+            if (_recepients.Count == 0)
+            {
+                throw new Exception("Your email message has no recepients");
+            }
+        }
+
+        private string GetStringFromList(List<string> lines)
+        {
+            var stringBuilder = new StringBuilder();
+            lines.ForEach(a => stringBuilder.Append(a));
+            return stringBuilder.ToString();
         }
 
         private void AddAttachmentIfExists(Transmission transmission)
@@ -182,7 +237,8 @@ namespace Rocket.Libraries.Emailing.Services
             if (hasAttachment)
             {
                 var attachment = new Attachment();
-                var attachmentContent = TemplateReader.GetContentFromTemplate(_attachmentFile);
+                var attachmentLines = TemplateReader.GetContentFromTemplate(_attachmentFile);
+                var attachmentContent = GetStringFromList(attachmentLines);
                 attachment.Data = PdfWriter.GetPdfBytes(PlaceholderWriter.GetWithPlaceholdersReplaced(attachmentContent, _placeholders));
                 attachment.Name = $"{_attachmentName}.pdf";
                 attachment.Type = "application/pdf";

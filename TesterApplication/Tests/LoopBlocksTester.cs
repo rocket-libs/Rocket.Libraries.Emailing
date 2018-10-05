@@ -1,14 +1,16 @@
-﻿using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
+﻿using Rocket.Libraries.Emailing.Services;
+using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using TesterApplication.Models;
 
 namespace TesterApplication.Tests
 {
     internal class LoopBlocksTester
     {
-        public void FillOutRequest()
+        public async Task SendLoopedBodyTestAsync()
         {
             var telexRequestInformation = new TelexRequestInformation();
             telexRequestInformation.Recepients = new List<Recepient>
@@ -45,9 +47,37 @@ namespace TesterApplication.Tests
                 }
             };
 
-            var templateLines = File.ReadAllLines("./Templates/Request-Telex.htm");
-            new LoopsPreprocessor(telexRequestInformation, templateLines.ToList())
-                .PreProcess();
+            await new EmailBuilder()
+                .AddBodyAsTemplate("Request-Telex.htm")
+                .AddSubject("Testing sending of looped placeholders")
+                .AddRecepient("nyingimaina@gmail.com")
+                .AddRecepient("nyingi@auto-kenya.com")
+                .AddRecepient("nyingi.maina@gmail.com")
+                .AddPlaceholdersObject(telexRequestInformation)
+                .AddPlaceholders(new List<Rocket.Libraries.Emailing.Models.TemplatePlaceholder>
+                {
+                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    {
+                        Placeholder = "{{vessel-name}}",
+                        Text = "Rita"
+                    },
+                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    {
+                        Placeholder = "{{voyage-name}}",
+                        Text = "Pushing Boundaries"
+                    },
+                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    {
+                        Placeholder = "{{sender-name}}",
+                        Text = "Jane Cho"
+                    },
+                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    {
+                        Placeholder = "{{sender-email}}",
+                        Text = "nyingimaina@gmail.com"
+                    }
+                })
+                .BuildAsync();
         }
     }
 }

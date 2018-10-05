@@ -1,10 +1,11 @@
 ﻿using Rocket.Libraries.Emailing.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace Rocket.Libraries.Emailing.Services
 {
-    class TemplateReader
+    internal class TemplateReader
     {
         private readonly EmailingSettings _emailingSettings;
 
@@ -13,29 +14,33 @@ namespace Rocket.Libraries.Emailing.Services
             _emailingSettings = emailingSettings;
         }
 
-        public string GetContentFromTemplate(string template)
+        public List<string> GetContentFromTemplate(string template)
         {
             var templatePath = $@"{_emailingSettings.TemplatesDirectory}/{template}";
+            var result = new List<string>();
             ThrowExceptionIfInvalid(templatePath);
             using (var fs = new FileStream(templatePath, FileMode.Open, FileAccess.Read))
             {
                 using (var stream = new StreamReader(fs))
                 {
-                    return stream.ReadToEnd();
+                    while (stream.EndOfStream == false)
+                    {
+                        result.Add(stream.ReadLine());
+                    }
                 }
             }
+            return result;
         }
-
 
         private void ThrowExceptionIfInvalid(string templatePath)
         {
-            if(string.IsNullOrEmpty(_emailingSettings.TemplatesDirectory))
+            if (string.IsNullOrEmpty(_emailingSettings.TemplatesDirectory))
             {
                 throw new Exception("Value for 'TemplatesDirectory' not set in appsettings.json");
             }
             else
             {
-                if(!Directory.Exists(_emailingSettings.TemplatesDirectory))
+                if (!Directory.Exists(_emailingSettings.TemplatesDirectory))
                 {
                     throw new Exception($"Templates directory '{_emailingSettings.TemplatesDirectory}' does not exist");
                 }
