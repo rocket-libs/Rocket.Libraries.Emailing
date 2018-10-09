@@ -2,8 +2,6 @@ using Microsoft.Extensions.Configuration;
 using Rocket.Libraries.Emailing.Models;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Rocket.Libraries.Emailing.Services
