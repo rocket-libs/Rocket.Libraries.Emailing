@@ -108,6 +108,7 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder AddBodyAsTemplate(string templateFile)
         {
             _bodyTemplateLines = TemplateReader.GetContentFromTemplate(templateFile);
+            AddBodyAsText(GetStringFromList(_bodyTemplateLines));
             return this;
         }
 
@@ -123,7 +124,7 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
-        public EmailBuilder SetSender(string email, string name)
+        public EmailBuilder AddSender(string email, string name)
         {
             _senderInformation = new SenderInformation
             {
@@ -131,6 +132,12 @@ namespace Rocket.Libraries.Emailing.Services
                 SenderName = name
             };
             return this;
+        }
+
+        [Obsolete("Use 'AddSender' as it is more consistently named with other methods in this builder")]
+        public EmailBuilder SetSender(string email, string name)
+        {
+            return AddSender(email, name);
         }
 
         internal EmailBuilder SetConfiguration(IConfiguration configuration)
