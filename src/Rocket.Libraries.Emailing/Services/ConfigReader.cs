@@ -1,8 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-
-namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services
 {
+    using System;
+    using Microsoft.Extensions.Configuration;
+
     class ConfigReader
     {
         public IConfiguration ReadConfiguration()

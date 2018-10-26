@@ -1,9 +1,9 @@
-﻿using DinkToPdf;
-using System;
-using System.IO;
-
-namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services
 {
+    using System;
+    using System.IO;
+    using DinkToPdf;
+
     class PdfWriter
     {
         public byte[] GetPdfBytes(string htmlContent)
@@ -27,7 +27,7 @@ namespace Rocket.Libraries.Emailing.Services
                         FooterSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 },
 
                     }
-                }
+                },
             };
 
             var converter = new BasicConverter(new PdfTools());
@@ -47,6 +47,7 @@ namespace Rocket.Libraries.Emailing.Services
                     File.Copy(file, targetFile);
                 }
             }
+
             /*var context = new CustomAssemblyLoadContext();
             context.LoadUnmanagedLibrary(wkHtmlToPdfPath);*/
         }

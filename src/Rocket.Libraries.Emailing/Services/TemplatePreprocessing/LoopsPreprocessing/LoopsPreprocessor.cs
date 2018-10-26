@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Rocket.Libraries.Emailing.Models;
-
-namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using Rocket.Libraries.Emailing.Models;
+
     public class LoopsPreprocessor : PreProcessor
     {
         public const string ObjectNestingStartRawTag = "nesting-start";
@@ -29,7 +29,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             var finalResult = new PreprocessingResult
             {
                 Placeholders = inlineResult.Placeholders,
-                TemplateLines = inlineResult.TemplateLines
+                TemplateLines = inlineResult.TemplateLines,
             };
             finalResult.Placeholders.AddRange(blocksResult.Placeholders);
             return finalResult;

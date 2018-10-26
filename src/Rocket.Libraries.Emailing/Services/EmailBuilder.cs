@@ -1,17 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Rocket.Libraries.Emailing.Models;
-using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
-using SparkPostDotNet;
-using SparkPostDotNet.Transmissions;
-using Options = Microsoft.Extensions.Options.Options;
-
 namespace Rocket.Libraries.Emailing.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Options;
+    using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
+    using Rocket.Libraries.Validation.Services;
+    using SparkPostDotNet;
+    using SparkPostDotNet.Transmissions;
+    using Options = Microsoft.Extensions.Options.Options;
+
     public class EmailBuilder
     {
         private List<string> _recepients = new List<string>();
@@ -46,6 +47,7 @@ namespace Rocket.Libraries.Emailing.Services
                 {
                     _templateReader = new TemplateReader(EmailingSettings);
                 }
+
                 return _templateReader;
             }
         }
@@ -58,6 +60,7 @@ namespace Rocket.Libraries.Emailing.Services
                 {
                     _pdfWriter = new PdfWriter();
                 }
+
                 return _pdfWriter;
             }
         }
@@ -70,6 +73,7 @@ namespace Rocket.Libraries.Emailing.Services
                 {
                     _placeholderWriter = new PlaceholderWriter();
                 }
+
                 return _placeholderWriter;
             }
         }
@@ -95,6 +99,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         public EmailBuilder AddRecepient(string recepient)
         {
+            FailOnInvalidEmail(recepient);
             _recepients.Add(recepient);
             return this;
         }
@@ -126,32 +131,12 @@ namespace Rocket.Libraries.Emailing.Services
 
         public EmailBuilder AddSender(string email, string name)
         {
+            FailOnInvalidEmail(email);
             _senderInformation = new SenderInformation
             {
                 SenderEmail = email,
-                SenderName = name
+                SenderName = name,
             };
-            return this;
-        }
-
-        [Obsolete("Use 'AddSender' as it is more consistently named with other methods in this builder")]
-        public EmailBuilder SetSender(string email, string name)
-        {
-            return AddSender(email, name);
-        }
-
-        internal EmailBuilder SetConfiguration(IConfiguration configuration)
-        {
-            _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
-            _sparkPostOptions = Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
-            if (_emailingSettings == null)
-            {
-                throw new NullReferenceException("Could not find settings for emailing in your appsettings.json file");
-            }
-            if (_sparkPostOptions == null)
-            {
-                throw new NullReferenceException("Could not find SparkPost integration settings in your appsettings.json file");
-            }
             return this;
         }
 
@@ -161,6 +146,7 @@ namespace Rocket.Libraries.Emailing.Services
             {
                 PreprocessObjectTemplatesIfRequired();
                 FailIfContentMissing();
+                PreprocessForDevelopmentIfNeeded();
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = _senderInformation.SenderEmail;
@@ -175,13 +161,51 @@ namespace Rocket.Libraries.Emailing.Services
                 await sparkPostClient.CreateTransmission(transmission);
                 return new EmailSendingResult { Succeeded = true };
             }
-            catch (Exception e)
-            {
-                throw e;
-            }
             finally
             {
                 CleanUp();
+            }
+        }
+
+        internal EmailBuilder SetConfiguration(IConfiguration configuration)
+        {
+            _emailingSettings = configuration.GetSection("Emailing").Get<EmailingSettings>();
+            _sparkPostOptions = Options.Create(configuration.GetSection("SparkPost").Get<SparkPostOptions>());
+            if (_emailingSettings == null)
+            {
+                throw new NullReferenceException("Could not find settings for emailing in your appsettings.json file");
+            }
+
+            if (_sparkPostOptions == null)
+            {
+                throw new NullReferenceException("Could not find SparkPost integration settings in your appsettings.json file");
+            }
+
+            return this;
+        }
+
+        private void FailOnInvalidEmail(string emailAddress)
+        {
+            new DataValidator().EvaluateImmediate(() => IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
+        }
+
+        private void PreprocessForDevelopmentIfNeeded()
+        {
+            if (EmailingSettings.IsDevelopment)
+            {
+                var debugInfo = string.Empty;
+                Action<string, string> appendLine = (key, value) => debugInfo += $"<b>{key}:</b> {value}<br/>";
+                var counter = 1;
+                appendLine("Mode", "Development");
+                appendLine("Actual Recepients", string.Empty);
+                foreach (var item in _recepients)
+                {
+                    appendLine("Recepient " + counter, item);
+                }
+
+                _recepients.Clear();
+                _recepients.Add(EmailingSettings.DevelopmentEmail);
+                _body = debugInfo + "<br/><br/>" + _body + "<br/><br/>";
             }
         }
 
@@ -201,6 +225,7 @@ namespace Rocket.Libraries.Emailing.Services
             {
                 return;
             }
+
             FailIfContentNotArrayForObjectPlaceholders();
             var result = new LoopsPreprocessor(_placeholdersObject, _bodyTemplateLines).PreProcess();
             AddBodyAsText(GetStringFromList(result.TemplateLines));
@@ -229,7 +254,7 @@ namespace Rocket.Libraries.Emailing.Services
                 {"Subject", _subject },
                 {"Body", _body },
                 {"Sender Email", _senderInformation?.SenderEmail },
-                {"Sender Name", _senderInformation?.SenderName }
+                {"Sender Name", _senderInformation?.SenderName },
             };
             foreach (var item in contents)
             {
@@ -238,6 +263,7 @@ namespace Rocket.Libraries.Emailing.Services
                     throw new Exception($"No '{item.Key}' was found in your email message");
                 }
             }
+
             if (_recepients.Count == 0)
             {
                 throw new Exception("Your email message has no recepients");
@@ -267,6 +293,20 @@ namespace Rocket.Libraries.Emailing.Services
             else
             {
                 return;
+            }
+        }
+
+        private bool IsInvalidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                var isValid = addr.Address == email;
+                return isValid == false;
+            }
+            catch
+            {
+                return true;
             }
         }
 

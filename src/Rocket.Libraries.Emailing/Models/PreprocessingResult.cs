@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace Rocket.Libraries.Emailing.Models
+﻿namespace Rocket.Libraries.Emailing.Models
 {
+    using System.Collections.Generic;
+
     public class PreprocessingResult
     {
         public List<string> TemplateLines { get; set; } = new List<string>();
