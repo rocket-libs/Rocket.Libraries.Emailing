@@ -16,6 +16,11 @@
             {
                 foreach (var placeholder in placeholders)
                 {
+                    if (placeholder.Text == null)
+                    {
+                        placeholder.Text = string.Empty;
+                    }
+
                     input = Regex.Replace(input, placeholder.Placeholder, placeholder.Text);
                 }
             }
