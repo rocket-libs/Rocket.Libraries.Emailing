@@ -2,6 +2,7 @@ namespace Rocket.Libraries.Emailing.Services
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
@@ -18,8 +19,9 @@ namespace Rocket.Libraries.Emailing.Services
         private List<string> _recepients = new List<string>();
         private string _subject;
         private string _body;
-        private string _attachmentFile;
+        private string _attachmentTemplate;
         private string _attachmentName;
+        private Dictionary<string, string> _attachmentFiles = new Dictionary<string, string>();
 
         private EmailingSettings _emailingSettings;
         private IOptions<SparkPostOptions> _sparkPostOptions;
@@ -90,10 +92,16 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
-        public EmailBuilder AddAttachment(string attachementFile, string attachmentName)
+        public EmailBuilder AddAttachmentAsTemplate(string attachementFile, string attachmentName)
         {
-            _attachmentFile = attachementFile;
+            _attachmentTemplate = attachementFile;
             _attachmentName = attachmentName;
+            return this;
+        }
+
+        public EmailBuilder AddAttachmentFile(string attachmentFile, string name)
+        {
+            _attachmentFiles.Add(name, attachmentFile);
             return this;
         }
 
@@ -156,7 +164,8 @@ namespace Rocket.Libraries.Emailing.Services
 
                 InjectRecepients(transmission);
 
-                AddAttachmentIfExists(transmission);
+                AppendAttachmentFromTemplateIfExists(transmission);
+                AppendAttachmentFromFilesIfExists(transmission);
 
                 await sparkPostClient.CreateTransmission(transmission);
                 return new EmailSendingResult { Succeeded = true };
@@ -186,7 +195,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         private void FailOnInvalidEmail(string emailAddress)
         {
-            new DataValidator().EvaluateImmediate(() => IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
+            new DataValidator().EvaluateImmediate(() => EmailingValidations.IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
         }
 
         private void PreprocessForDevelopmentIfNeeded()
@@ -277,18 +286,14 @@ namespace Rocket.Libraries.Emailing.Services
             return stringBuilder.ToString();
         }
 
-        private void AddAttachmentIfExists(Transmission transmission)
+        private void AppendAttachmentFromTemplateIfExists(Transmission transmission)
         {
-            var hasAttachment = !string.IsNullOrEmpty(_attachmentFile);
-            if (hasAttachment)
+            var hasAttachmentTemplate = !string.IsNullOrEmpty(_attachmentTemplate);
+            if (hasAttachmentTemplate)
             {
-                var attachment = new Attachment();
-                var attachmentLines = TemplateReader.GetContentFromTemplate(_attachmentFile);
+                var attachmentLines = TemplateReader.GetContentFromTemplate(_attachmentTemplate);
                 var attachmentContent = GetStringFromList(attachmentLines);
-                attachment.Data = PdfWriter.GetPdfBytes(PlaceholderWriter.GetWithPlaceholdersReplaced(attachmentContent, _placeholders));
-                attachment.Name = $"{_attachmentName}.pdf";
-                attachment.Type = "application/pdf";
-                transmission.Content.Attachments.Add(attachment);
+                AppendAttachment(transmission, PdfWriter.GetPdfBytes(PlaceholderWriter.GetWithPlaceholdersReplaced(attachmentContent, _placeholders)), _attachmentName);
             }
             else
             {
@@ -296,24 +301,29 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
-        private bool IsInvalidEmail(string email)
+        private void AppendAttachmentFromFilesIfExists(Transmission transmission)
         {
-            try
+            foreach (var item in _attachmentFiles)
             {
-                var addr = new System.Net.Mail.MailAddress(email);
-                var isValid = addr.Address == email;
-                return isValid == false;
+                new DataValidator().EvaluateImmediate(() => !File.Exists(item.Value), $"Could not find attachment file at '{item.Value}'");
+                var attachmentBytes = File.ReadAllBytes(item.Value);
+                AppendAttachment(transmission, attachmentBytes, item.Key);
             }
-            catch
-            {
-                return true;
-            }
+        }
+
+        private void AppendAttachment(Transmission transmission, byte[] attachmentBytes, string attachmentName)
+        {
+            var attachment = new Attachment();
+            attachment.Data = attachmentBytes;
+            attachment.Name = attachmentName;
+            attachment.Type = "application/pdf";
+            transmission.Content.Attachments.Add(attachment);
         }
 
         private void CleanUp()
         {
             AddBodyAsText(string.Empty)
-                .AddAttachment(string.Empty, string.Empty)
+                .AddAttachmentAsTemplate(string.Empty, string.Empty)
                 .AddRecepient(string.Empty)
                 .AddSubject(string.Empty);
         }

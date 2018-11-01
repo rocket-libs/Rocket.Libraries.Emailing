@@ -40,7 +40,7 @@ namespace Rocket.Libraries.Emailing.Services
             return await emailBuilder
                 .AddPlaceholders(placeholders)
                 .AddBodyAsText(body)
-                .AddAttachment(template, attachmentName)
+                .AddAttachmentAsTemplate(template, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
                 .BuildAsync();
