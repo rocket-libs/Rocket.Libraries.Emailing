@@ -210,6 +210,7 @@ namespace Rocket.Libraries.Emailing.Services
                 foreach (var item in _recepients)
                 {
                     appendLine("Recepient " + counter, item);
+                    counter++;
                 }
 
                 _recepients.Clear();
@@ -324,8 +325,9 @@ namespace Rocket.Libraries.Emailing.Services
         {
             AddBodyAsText(string.Empty)
                 .AddAttachmentAsTemplate(string.Empty, string.Empty)
-                .AddRecepient(string.Empty)
                 .AddSubject(string.Empty);
+            _recepients = new List<string>();
+            _senderInformation = new SenderInformation();
         }
     }
 }
