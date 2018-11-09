@@ -237,7 +237,8 @@
             TemplateLines.RemoveAt(index);
             while (LineDoesNotHaveClosingTag(index, blockTags.ClosingTag) && NotAtLastLine(index))
             {
-                blockContent.Add(TemplateLines[index]);
+                var currentLine = TemplateLines[index];
+                blockContent.Add(currentLine);
                 TemplateLines.RemoveAt(index);
             }
 

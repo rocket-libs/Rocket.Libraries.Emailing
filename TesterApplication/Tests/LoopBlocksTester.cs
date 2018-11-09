@@ -1,4 +1,5 @@
-﻿using Rocket.Libraries.Emailing.Services;
+﻿using Furaha.Services.Logic.Legacy.Models.Reporting;
+using Rocket.Libraries.Emailing.Services;
 using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
 using System.Collections.Generic;
 using System.IO;
@@ -10,7 +11,37 @@ namespace TesterApplication.Tests
 {
     internal class LoopBlocksTester
     {
-        public async Task SendLoopedBodyTestAsync()
+        public async Task SendNestedAsync()
+        {
+            var grouped = new GroupedUninvoicedLoaded
+            {
+                Group = "Cat",
+                Rows = new List<UninvoicedLoaded>
+                {
+                    new UninvoicedLoaded
+                    {
+                        CompanyName = "Lion"
+                    },
+                    new UninvoicedLoaded
+                    {
+                        CompanyName = "Tiger"
+                    }
+                }
+            };
+
+            await new EmailBuilder()
+                .AddBodyAsTemplate("UninvoicedLoaded.htm")
+                .AddSubject("Testing sending of looped of nested")
+                .AddRecepient("nyingi@auto-kenya.com")
+                .AddPlaceholdersObject(new
+                {
+                    Items = grouped
+                })
+                .AddSender("nyingi@rocketdocuments.com", "Nyingi's Rocket Email")
+                .BuildAsync();
+        }
+
+        public async Task SendUnnestedAsync()
         {
             var telexRequestInformation = new TelexRequestInformation();
             telexRequestInformation.Recepients = new List<Recepient>

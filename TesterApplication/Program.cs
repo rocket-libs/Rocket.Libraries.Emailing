@@ -19,7 +19,7 @@ namespace TesterApplication
 
             try
             {
-                new LoopBlocksTester().SendLoopedBodyTestAsync().GetAwaiter().GetResult();
+                new LoopBlocksTester().SendNestedAsync().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)
