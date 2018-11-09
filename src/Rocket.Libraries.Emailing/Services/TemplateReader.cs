@@ -1,10 +1,10 @@
-﻿using Rocket.Libraries.Emailing.Models;
-using System;
-using System.Collections.Generic;
-using System.IO;
-
-namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using Rocket.Libraries.Emailing.Models;
+
     internal class TemplateReader
     {
         private readonly EmailingSettings _emailingSettings;
@@ -29,6 +29,7 @@ namespace Rocket.Libraries.Emailing.Services
                     }
                 }
             }
+
             return result;
         }
 
@@ -45,6 +46,7 @@ namespace Rocket.Libraries.Emailing.Services
                     throw new Exception($"Templates directory '{_emailingSettings.TemplatesDirectory}' does not exist");
                 }
             }
+
             if (!File.Exists(templatePath))
             {
                 throw new Exception($"Could not find the template at path '{templatePath}'");

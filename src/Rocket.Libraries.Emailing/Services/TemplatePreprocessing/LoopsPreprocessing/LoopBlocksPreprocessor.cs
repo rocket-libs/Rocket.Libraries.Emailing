@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Rocket.Libraries.Emailing.Models;
-
-namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using Rocket.Libraries.Emailing.Models;
+
     public class LoopBlocksPreprocessor : PreProcessor
     {
         private const string BlockTagPrefix = "<lb-";
@@ -20,7 +20,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
         {
             var results = new PreprocessingResult
             {
-                TemplateLines = new List<string>()
+                TemplateLines = new List<string>(),
             };
 
             for (var i = 0; i < TemplateLines.Count; i++)
@@ -31,11 +31,13 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                     i = -1;
                 }
             }
+
             if (results.TemplateLines.Count == 0)
             {
                 results.TemplateLines = TemplateLines;
                 results.Placeholders = new List<TemplatePlaceholder>();
             }
+
             return results;
         }
 
@@ -92,7 +94,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             var preprocessingResult = new PreprocessingResult
             {
                 TemplateLines = TemplateLines,
-                Placeholders = new List<TemplatePlaceholder>()
+                Placeholders = new List<TemplatePlaceholder>(),
             };
             var innerPlaceholders = GetPlaceholdersInBlockContent(blockContent);
             var list = targetProperty.GetValue(ValuesObject) as ICollection;
@@ -105,18 +107,20 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 var newLines = new List<string>
                 {
-                    $"{nestingStartTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStartTag.ClosingTag}"
+                    $"{nestingStartTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStartTag.ClosingTag}",
                 };
                 for (var i = 0; i < blockContent.Count; i++)
                 {
                     var processedLine = GetLineWithInnerPlaceHoldersReplaced(blockContent[i], innerPlaceholders, i, targetProperty.Name, listEnumerator.Current, preprocessingResult, listItemIndex);
                     newLines.Add(processedLine);
                 }
+
                 newLines.Add($"{nestingStopTag.OpeningTag}{targetProperty.Name}{nestingStopTag.ClosingTag}");
                 preprocessingResult.TemplateLines.InsertRange(index, newLines);
                 index += newLines.Count;
                 listItemIndex++;
             }
+
             return preprocessingResult;
         }
 
@@ -150,11 +154,13 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                         preprocessingResult.Placeholders.Add(new TemplatePlaceholder
                         {
                             Placeholder = replacementPlaceHolder,
-                            Text = value
+                            Text = value,
                         });
                     }
+
                     blockContentLine = blockContentLine.Replace(originalPlaceHolder, replacementPlaceHolder);
                 }
+
                 return blockContentLine;
             }
             else
@@ -207,11 +213,13 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                         }
                     }
                 }
+
                 if (placeholders.Count > 0)
                 {
                     finalResult.Add(i, placeholders);
                 }
             }
+
             return finalResult;
         }
 
@@ -225,12 +233,14 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 blockContent.Add(TemplateLines[index].Substring(contentStart));
             }
+
             TemplateLines.RemoveAt(index);
             while (LineDoesNotHaveClosingTag(index, blockTags.ClosingTag) && NotAtLastLine(index))
             {
                 blockContent.Add(TemplateLines[index]);
                 TemplateLines.RemoveAt(index);
             }
+
             blockContent.Add(GetBlockContentFromLastLine(blockTags, index));
             CleanClosingTagOffLastLine(blockTags.ClosingTag, index);
             return blockContent;
@@ -244,6 +254,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 throw new Exception($"Tag {blockTags.OpeningTag} is not closed");
             }
+
             return TemplateLines[index].Substring(0, indexOfClosingTag);
         }
 
