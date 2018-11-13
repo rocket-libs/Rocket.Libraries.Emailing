@@ -13,10 +13,13 @@
         }
 
         public string OpeningTag => $"<{RawTag}>";
+
         public string ClosingTag => $"</{RawTag}>";
+
         public string UnPrefixedTag => RawTag.Substring(Prefix.Length);
 
         public string Prefix { get; }
+
         public string RawTag { get; }
     }
 }

@@ -10,6 +10,8 @@
 
     public class LoopsInlinePreprocessor : PreProcessor
     {
+        private int _nestTraversalCounter = 0;
+
         private class NestingInformation
         {
             public NestingInformation(int index, object Obj)
@@ -19,6 +21,7 @@
             }
 
             public int Index { get; }
+
             public object Obj { get; }
         }
 
@@ -32,8 +35,8 @@
 
         private TagPair nestingStopTags = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStopRawTag);
 
-        public LoopsInlinePreprocessor(object valuesObject, List<string> templateLines)
-             : base(valuesObject, templateLines)
+        public LoopsInlinePreprocessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)
+             : base(valuesObject, templateLines, nestingLevel, key, existingPlaceholders)
         {
             _nestingStack.Push(new NestingInformation(0, valuesObject));
         }
@@ -71,24 +74,33 @@
             }
             else
             {
-                var bits = newObjectDescription.Split('-');
-                var listProperty = GetProperty(string.Empty, bits[0]);
-                var listValue = listProperty.GetValue(CurrentValuesObject);
-                var enumerator = (listValue as ICollection).GetEnumerator();
-                var targetIndex = int.Parse(bits[1]);
-                var currentIndex = 0;
-                while (enumerator.MoveNext())
+                _nestTraversalCounter++;
+                var isCurrentLevel = _nestTraversalCounter == CurrentNestingLevel;
+                if (isCurrentLevel)
                 {
-                    if (currentIndex == targetIndex)
+                    var bits = newObjectDescription.Split('-');
+                    var listProperty = GetProperty(string.Empty, bits[0]);
+                    var listValue = listProperty.GetValue(CurrentValuesObject);
+                    var enumerator = (listValue as ICollection).GetEnumerator();
+                    var targetIndex = int.Parse(bits[1]);
+                    var currentIndex = 0;
+                    while (enumerator.MoveNext())
                     {
-                        _nestingStack.Push(new NestingInformation(targetIndex, enumerator.Current));
-                        return string.Empty;
+                        if (currentIndex == targetIndex)
+                        {
+                            _nestingStack.Push(new NestingInformation(targetIndex, enumerator.Current));
+                            return string.Empty;
+                        }
+
+                        currentIndex++;
                     }
 
-                    currentIndex++;
+                    throw new Exception("Could not find object to read from in nested list");
                 }
-
-                throw new Exception("Could not find object to read from in nested list");
+                else
+                {
+                    return line;
+                }
             }
         }
 
@@ -101,8 +113,17 @@
             }
             else
             {
-                _nestingStack.Pop();
-                return string.Empty;
+                if (_nestTraversalCounter == CurrentNestingLevel)
+                {
+                    _nestingStack.Pop();
+                    _nestTraversalCounter--;
+                    return string.Empty;
+                }
+                else
+                {
+                    _nestTraversalCounter--;
+                    return line;
+                }
             }
         }
 

@@ -6,13 +6,15 @@
     using System.Linq;
     using System.Reflection;
     using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Validation.Services;
 
     public class LoopBlocksPreprocessor : PreProcessor
     {
         private const string BlockTagPrefix = "<lb-";
+        private List<NestedBlockDescription> _nestedBlockDescriptions = new List<NestedBlockDescription>();
 
-        public LoopBlocksPreprocessor(object valuesObject, List<string> templateLines)
-            : base(valuesObject, templateLines)
+        public LoopBlocksPreprocessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)
+            : base(valuesObject, templateLines, nestingLevel, key, existingPlaceholders)
         {
         }
 
@@ -43,8 +45,25 @@
 
         private bool LineContainsStartOfBlock(string line)
         {
-            var indexOfStarting = line.IndexOf(BlockTagPrefix);
-            return indexOfStarting >= 0;
+            var indexOfStarting = line.IndexOf(BlockTagPrefix, StringComparison.InvariantCulture);
+            var startOfBlockFound = indexOfStarting >= 0;
+            if (startOfBlockFound)
+            {
+                var tagPair = GetFirstTagPair(line, BlockTagPrefix);
+                new DataValidator().EvaluateImmediate(() => tagPair == null, $"Contrary to expectation, could not find a block opening tag on line '{line}'");
+                var isValidForCurrentLevel = IsCachedTag(tagPair) == false;
+                return isValidForCurrentLevel;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private bool IsCachedTag(TagPair tagPair)
+        {
+            var cachedInstance = _nestedBlockDescriptions.FirstOrDefault(a => a.ChildTag.RawTag.Equals(tagPair.RawTag, StringComparison.InvariantCulture));
+            return cachedInstance != null;
         }
 
         private PreprocessingResult InjectBlocks(int index)
@@ -89,6 +108,59 @@
             }
         }
 
+        private bool LineContainsBlockTagClose(string line, TagPair tagPair)
+        {
+            return line.Contains(tagPair.ClosingTag, StringComparison.InvariantCulture);
+        }
+
+        private TagPair GetCurrentNestedTagIfExists(TagPair currentNestedTagPair, string line)
+        {
+            if (currentNestedTagPair == null)
+            {
+                currentNestedTagPair = GetFirstTagPair(line, BlockTagPrefix);
+                return currentNestedTagPair;
+            }
+            else
+            {
+                var containsClosingBlockTag = LineContainsBlockTagClose(line, currentNestedTagPair);
+                if (containsClosingBlockTag)
+                {
+                    return null;
+                }
+                else
+                {
+                    return currentNestedTagPair;
+                }
+            }
+        }
+
+        private void InjectExistingPlaceholdersIfAvailable(PreprocessingResult preprocessingResult)
+        {
+            if (ExistingPlaceholders != null && ExistingPlaceholders.Count > 0)
+            {
+                preprocessingResult.Placeholders.AddRange(ExistingPlaceholders);
+            }
+        }
+
+        private PreprocessingResult HandleNestingIfRequired(bool nestingFound, PreprocessingResult preprocessingResult, object currentObject)
+        {
+            preprocessingResult.TotalNewLinesAfterHandlingNesting = 0;
+            if (nestingFound)
+            {
+                var linesBeforeRecursion = preprocessingResult.TemplateLines.Count;
+                var nestingLevel = CurrentNestingLevel + 1;
+                var key = Guid.NewGuid().ToString();
+                preprocessingResult = new LoopsPreprocessor(currentObject, preprocessingResult.TemplateLines, CurrentNestingLevel + 1, key, preprocessingResult.Placeholders)
+                    .PreProcess();
+                var linesAfterRecursion = preprocessingResult.TemplateLines.Count;
+                var totalNewLinesFromRecursion = linesAfterRecursion - linesBeforeRecursion;
+                new DataValidator().EvaluateImmediate(() => totalNewLinesFromRecursion < 0, "Decrement of lines after recursion for nested blocks in templates has not been tested.");
+                preprocessingResult.TotalNewLinesAfterHandlingNesting = totalNewLinesFromRecursion;
+            }
+
+            return preprocessingResult;
+        }
+
         private PreprocessingResult GetProcessingResult(List<string> blockContent, PropertyInfo targetProperty, int index)
         {
             var preprocessingResult = new PreprocessingResult
@@ -96,6 +168,8 @@
                 TemplateLines = TemplateLines,
                 Placeholders = new List<TemplatePlaceholder>(),
             };
+            InjectExistingPlaceholdersIfAvailable(preprocessingResult);
+            var nestingFound = false;
             var innerPlaceholders = GetPlaceholdersInBlockContent(blockContent);
             var list = targetProperty.GetValue(ValuesObject) as ICollection;
             var listEnumerator = list.GetEnumerator();
@@ -109,34 +183,54 @@
                 {
                     $"{nestingStartTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStartTag.ClosingTag}",
                 };
+
+                var currentNestedTagPair = default(TagPair);
                 for (var i = 0; i < blockContent.Count; i++)
                 {
-                    var processedLine = GetLineWithInnerPlaceHoldersReplaced(blockContent[i], innerPlaceholders, i, targetProperty.Name, listEnumerator.Current, preprocessingResult, listItemIndex);
+                    currentNestedTagPair = GetCurrentNestedTagIfExists(currentNestedTagPair, blockContent[i]);
+                    var isInNestedBlock = currentNestedTagPair != null;
+                    nestingFound = nestingFound || isInNestedBlock;
+                    var processedLine = GetLineWithInnerPlaceHoldersReplaced(blockContent[i], innerPlaceholders, i, targetProperty.Name, listEnumerator.Current, preprocessingResult, listItemIndex, isInNestedBlock);
                     newLines.Add(processedLine);
                 }
 
-                newLines.Add($"{nestingStopTag.OpeningTag}{targetProperty.Name}{nestingStopTag.ClosingTag}");
+                newLines.Add($"{nestingStopTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStopTag.ClosingTag}");
                 preprocessingResult.TemplateLines.InsertRange(index, newLines);
-                index += newLines.Count;
+
+                preprocessingResult = HandleNestingIfRequired(nestingFound, preprocessingResult, listEnumerator.Current);
+
+                index += newLines.Count + preprocessingResult.TotalNewLinesAfterHandlingNesting;
                 listItemIndex++;
             }
 
             return preprocessingResult;
         }
 
-        private string GetReplacementPlaceholder(string propertyName, string placeholderName, bool isToStringPlaceholder, int listItemIndex)
+        private string GetReplacementPlaceholder(string propertyName, string placeholderName, bool isToStringPlaceholder, int listItemIndex, bool isInNestedBlock)
         {
-            if (isToStringPlaceholder)
+            if (isToStringPlaceholder || isInNestedBlock)
             {
-                return "{{" + placeholderName + "}}";
+                return "{{" + GetPlaceholderPrefixIfRequired() + placeholderName + "}}";
             }
             else
             {
-                return $"{{{{{propertyName}-{listItemIndex}-{placeholderName}}}}}";
+                return $"{{{{{propertyName}{GetPlaceholderPrefixIfRequired()}-{listItemIndex}-{placeholderName}}}}}";
             }
         }
 
-        private string GetLineWithInnerPlaceHoldersReplaced(string blockContentLine, Dictionary<int, List<string>> innerPlaceholders, int index, string propertyName, object currentObject, PreprocessingResult preprocessingResult, int listItemIndex)
+        private string GetPlaceholderPrefixIfRequired()
+        {
+            if (string.IsNullOrEmpty(Key))
+            {
+                return string.Empty;
+            }
+            else
+            {
+                return $"{Key}-";
+            }
+        }
+
+        private string GetLineWithInnerPlaceHoldersReplaced(string blockContentLine, Dictionary<int, List<string>> innerPlaceholders, int index, string propertyName, object currentObject, PreprocessingResult preprocessingResult, int listItemIndex, bool isInNestedBlock)
         {
             if (innerPlaceholders.ContainsKey(index))
             {
@@ -144,7 +238,7 @@
                 {
                     var originalPlaceHolder = $"{{{{{placeholderName}}}}}";
                     var isToStringPlaceholder = placeholderName.Equals(LoopsPreprocessor.ToStringPlaceholder, StringComparison.CurrentCultureIgnoreCase);
-                    var replacementPlaceHolder = GetReplacementPlaceholder(propertyName, placeholderName, isToStringPlaceholder, listItemIndex);
+                    var replacementPlaceHolder = GetReplacementPlaceholder(propertyName, placeholderName, isToStringPlaceholder, listItemIndex, isInNestedBlock);
 
                     var insertPlaceholderNow = isToStringPlaceholder == false;
                     if (insertPlaceholderNow)
@@ -223,21 +317,40 @@
             return finalResult;
         }
 
+        private void CacheNestedBlockIfRequired(string currentLine, TagPair blockTag)
+        {
+            var beginningOfNestedBlock = LineContainsStartOfBlock(currentLine);
+            if (beginningOfNestedBlock)
+            {
+                var nestedTag = GetFirstTagPair(currentLine, BlockTagPrefix);
+                var nestedBlockDescription = new NestedBlockDescription
+                {
+                    ChildTag = nestedTag,
+                    ParentTag = blockTag,
+                };
+                _nestedBlockDescriptions.Add(nestedBlockDescription);
+            }
+        }
+
         private List<string> GetBlockContent(TagPair blockTags, int index)
         {
             var blockContent = new List<string>();
-            var openingTagStart = TemplateLines[index].IndexOf(blockTags.OpeningTag);
+            var openingTagStart = TemplateLines[index].IndexOf(blockTags.OpeningTag, StringComparison.InvariantCulture);
             var contentStart = openingTagStart + blockTags.OpeningTag.Length;
             var hasAdditionalContentOnLine = TemplateLines[index].Length > contentStart;
             if (hasAdditionalContentOnLine)
             {
-                blockContent.Add(TemplateLines[index].Substring(contentStart));
+                var targetContent = TemplateLines[index].Substring(contentStart);
+                CacheNestedBlockIfRequired(targetContent, blockTags);
+                blockContent.Add(targetContent);
             }
 
             TemplateLines.RemoveAt(index);
             while (LineDoesNotHaveClosingTag(index, blockTags.ClosingTag) && NotAtLastLine(index))
             {
-                blockContent.Add(TemplateLines[index]);
+                var currentLine = TemplateLines[index];
+                CacheNestedBlockIfRequired(currentLine, blockTags);
+                blockContent.Add(currentLine);
                 TemplateLines.RemoveAt(index);
             }
 
@@ -248,14 +361,16 @@
 
         private string GetBlockContentFromLastLine(TagPair blockTags, int index)
         {
-            var indexOfClosingTag = TemplateLines[index].IndexOf(blockTags.ClosingTag);
+            var indexOfClosingTag = TemplateLines[index].IndexOf(blockTags.ClosingTag, StringComparison.InvariantCulture);
 
             if (indexOfClosingTag < 0)
             {
                 throw new Exception($"Tag {blockTags.OpeningTag} is not closed");
             }
 
-            return TemplateLines[index].Substring(0, indexOfClosingTag);
+            var line = TemplateLines[index].Substring(0, indexOfClosingTag);
+            CacheNestedBlockIfRequired(line, blockTags);
+            return line;
         }
 
         private void CleanClosingTagOffLastLine(string closingTag, int index)

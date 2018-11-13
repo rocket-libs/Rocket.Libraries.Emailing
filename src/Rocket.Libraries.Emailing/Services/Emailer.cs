@@ -9,6 +9,7 @@ namespace Rocket.Libraries.Emailing.Services
     public class Emailer
     {
         private IConfiguration _configuration;
+
         public Emailer()
         {
             _configuration = GetConfig();
