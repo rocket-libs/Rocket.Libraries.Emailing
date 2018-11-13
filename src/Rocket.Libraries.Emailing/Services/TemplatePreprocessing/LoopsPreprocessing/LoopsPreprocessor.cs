@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Text;
+    using Newtonsoft.Json;
     using Rocket.Libraries.Emailing.Models;
 
     public class LoopsPreprocessor : PreProcessor
@@ -11,15 +12,15 @@
         public const string ObjectNestingStopRawTag = "nesting-stop";
         public const string ToStringPlaceholder = "%s";
 
-        public LoopsPreprocessor(object valuesObject, List<string> templateLines)
-            : base(valuesObject, templateLines)
+        public LoopsPreprocessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)
+            : base(valuesObject, templateLines, nestingLevel, key, existingPlaceholders)
         {
         }
 
         public override PreprocessingResult PreProcess()
         {
-            var blocksResult = new LoopBlocksPreprocessor(ValuesObject, TemplateLines).PreProcess();
-            var inlineResult = new LoopsInlinePreprocessor(ValuesObject, blocksResult.TemplateLines).PreProcess();
+            var blocksResult = new LoopBlocksPreprocessor(ValuesObject, TemplateLines, CurrentNestingLevel, Key, ExistingPlaceholders).PreProcess();
+            var inlineResult = new LoopsInlinePreprocessor(ValuesObject, blocksResult.TemplateLines, CurrentNestingLevel, Key, ExistingPlaceholders).PreProcess();
             var finalResult = GetFinalResult(blocksResult, inlineResult);
             return finalResult;
         }

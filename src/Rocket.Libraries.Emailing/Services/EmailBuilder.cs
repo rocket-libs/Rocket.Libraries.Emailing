@@ -237,7 +237,7 @@ namespace Rocket.Libraries.Emailing.Services
             }
 
             FailIfContentNotArrayForObjectPlaceholders();
-            var result = new LoopsPreprocessor(_placeholdersObject, _bodyTemplateLines).PreProcess();
+            var result = new LoopsPreprocessor(_placeholdersObject, _bodyTemplateLines, 1, string.Empty, null).PreProcess();
             AddBodyAsText(GetStringFromList(result.TemplateLines));
             _placeholders.AddRange(result.Placeholders);
         }
@@ -284,7 +284,8 @@ namespace Rocket.Libraries.Emailing.Services
         {
             var stringBuilder = new StringBuilder();
             lines.ForEach(a => stringBuilder.Append(a));
-            return stringBuilder.ToString();
+            var str = stringBuilder.ToString();
+            return str;
         }
 
         private void AppendAttachmentFromTemplateIfExists(Transmission transmission)

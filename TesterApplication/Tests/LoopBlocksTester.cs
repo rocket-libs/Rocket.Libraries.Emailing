@@ -13,7 +13,7 @@ namespace TesterApplication.Tests
     {
         public async Task SendNestedAsync()
         {
-            var grouped = new GroupedUninvoicedLoaded
+            var groupCats = new GroupedUninvoicedLoaded
             {
                 Group = "Cat",
                 Rows = new List<UninvoicedLoaded>
@@ -29,13 +29,29 @@ namespace TesterApplication.Tests
                 }
             };
 
+            var groupDogs = new GroupedUninvoicedLoaded
+            {
+                Group = "Dogs",
+                Rows = new List<UninvoicedLoaded>
+                {
+                    new UninvoicedLoaded
+                    {
+                        CompanyName = "Wolf"
+                    },
+                    new UninvoicedLoaded
+                    {
+                        CompanyName = "Hyena"
+                    }
+                }
+            };
+
             await new EmailBuilder()
                 .AddBodyAsTemplate("UninvoicedLoaded.htm")
                 .AddSubject("Testing sending of looped of nested")
                 .AddRecepient("nyingi@auto-kenya.com")
                 .AddPlaceholdersObject(new
                 {
-                    Items = grouped
+                    Items = new List<GroupedUninvoicedLoaded> { groupCats, groupDogs }
                 })
                 .AddSender("nyingi@rocketdocuments.com", "Nyingi's Rocket Email")
                 .BuildAsync();

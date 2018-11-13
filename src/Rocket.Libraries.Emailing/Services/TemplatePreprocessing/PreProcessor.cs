@@ -8,14 +8,42 @@
 
     public abstract class PreProcessor
     {
-        public PreProcessor(object valuesObject, List<string> templateLines)
+        private object _valuesObject;
+
+        private List<TemplatePlaceholder> _existingPlaceholders;
+
+        protected List<TemplatePlaceholder> ExistingPlaceholders
+        {
+            get
+            {
+                if (_existingPlaceholders == null)
+                {
+                    _existingPlaceholders = new List<TemplatePlaceholder>();
+                }
+                return _existingPlaceholders;
+            }
+            set => _existingPlaceholders = value;
+        }
+
+        public PreProcessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)
         {
             ValuesObject = valuesObject;
             TemplateLines = templateLines;
+            CurrentNestingLevel = nestingLevel;
+            Key = key;
+            ExistingPlaceholders = existingPlaceholders;
         }
 
-        public object ValuesObject { get; set; }
+        public object ValuesObject
+        {
+            get => _valuesObject;
+            private set => _valuesObject = value;
+        }
+
         public List<string> TemplateLines { get; }
+
+        protected int CurrentNestingLevel { get; }
+        protected string Key { get; }
 
         public abstract PreprocessingResult PreProcess();
 
