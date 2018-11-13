@@ -12,7 +12,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
         public async Task KitchenSinkTestAsync()
         {
             await new EmailBuilder()
-                .AddAttachment("text.htm", "rescue")
+                .AddAttachmentAsTemplate("text.htm", "rescue")
                 .AddBodyAsTemplate("body.htm")
                 .AddPlaceholders(
                     new List<Models.TemplatePlaceholder>

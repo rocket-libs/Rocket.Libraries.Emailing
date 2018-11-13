@@ -1,14 +1,15 @@
-using Microsoft.Extensions.Configuration;
-using Rocket.Libraries.Emailing.Models;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-
 namespace Rocket.Libraries.Emailing.Services
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using Microsoft.Extensions.Configuration;
+    using Rocket.Libraries.Emailing.Models;
+
     public class Emailer
     {
         private IConfiguration _configuration;
+
         public Emailer()
         {
             _configuration = GetConfig();
@@ -33,13 +34,14 @@ namespace Rocket.Libraries.Emailing.Services
             {
                 throw new Exception("Configuration is not set");
             }
+
             var emailBuilder = new EmailBuilder()
                 .SetConfiguration(_configuration);
 
             return await emailBuilder
                 .AddPlaceholders(placeholders)
                 .AddBodyAsText(body)
-                .AddAttachment(template, attachmentName)
+                .AddAttachmentAsTemplate(template, attachmentName)
                 .AddRecepient(recepient)
                 .AddSubject(subject)
                 .BuildAsync();

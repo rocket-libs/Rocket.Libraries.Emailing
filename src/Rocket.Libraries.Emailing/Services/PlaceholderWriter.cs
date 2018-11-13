@@ -1,9 +1,9 @@
-﻿using Rocket.Libraries.Emailing.Models;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-
-namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services
 {
+    using System.Collections.Generic;
+    using System.Text.RegularExpressions;
+    using Rocket.Libraries.Emailing.Models;
+
     internal class PlaceholderWriter
     {
         public string GetWithPlaceholdersReplaced(string input, List<TemplatePlaceholder> placeholders)
@@ -16,9 +16,15 @@ namespace Rocket.Libraries.Emailing.Services
             {
                 foreach (var placeholder in placeholders)
                 {
+                    if (placeholder.Text == null)
+                    {
+                        placeholder.Text = string.Empty;
+                    }
+
                     input = Regex.Replace(input, placeholder.Placeholder, placeholder.Text);
                 }
             }
+
             return input;
         }
     }
