@@ -29,6 +29,8 @@ namespace Rocket.Libraries.Emailing.Services
         private object _placeholdersObject;
         private List<string> _bodyTemplateLines;
         private SenderInformation _senderInformation;
+        private List<FilePlaceholder> _filePlaceholders = new List<FilePlaceholder>();
+        private FilePlaceholderProcessor _filePlaceholderProcessor = new FilePlaceholderProcessor();
 
         private EmailingSettings EmailingSettings
         {
@@ -83,6 +85,16 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder AddPlaceholdersObject(object placeholdersObject)
         {
             this._placeholdersObject = placeholdersObject;
+            return this;
+        }
+
+        public EmailBuilder AddFilePlaceholder(string placeholder, string file)
+        {
+            _filePlaceholders.Add(new FilePlaceholder
+            {
+                File = file,
+                Placeholder = placeholder,
+            });
             return this;
         }
 
@@ -166,6 +178,7 @@ namespace Rocket.Libraries.Emailing.Services
                 transmission.Content.From.EMail = _senderInformation.SenderEmail;
                 transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_senderInformation.SenderName, _placeholders);
                 transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
+                _body = _filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
                 transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
 
                 InjectRecepients(transmission);
