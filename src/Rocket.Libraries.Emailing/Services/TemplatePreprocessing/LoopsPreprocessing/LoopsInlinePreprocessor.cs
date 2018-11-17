@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using Rocket.Libraries.Emailing.Models;
-
-namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text;
+    using Rocket.Libraries.Emailing.Models;
+
     public class LoopsInlinePreprocessor : PreProcessor
     {
+        private int _nestTraversalCounter = 0;
+
         private class NestingInformation
         {
             public NestingInformation(int index, object Obj)
@@ -19,6 +21,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             }
 
             public int Index { get; }
+
             public object Obj { get; }
         }
 
@@ -32,8 +35,8 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
 
         private TagPair nestingStopTags = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStopRawTag);
 
-        public LoopsInlinePreprocessor(object valuesObject, List<string> templateLines)
-             : base(valuesObject, templateLines)
+        public LoopsInlinePreprocessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)
+             : base(valuesObject, templateLines, nestingLevel, key, existingPlaceholders)
         {
             _nestingStack.Push(new NestingInformation(0, valuesObject));
         }
@@ -44,7 +47,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 _preprocessingResult = new PreprocessingResult
                 {
-                    Placeholders = new List<TemplatePlaceholder>()
+                    Placeholders = new List<TemplatePlaceholder>(),
                 };
                 for (var i = 0; i < TemplateLines.Count; i++)
                 {
@@ -52,6 +55,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                     line = NestOutIfRequired(line);
                     TemplateLines[i] = GetLinePreprocessed(line);
                 }
+
                 _preprocessingResult.TemplateLines = TemplateLines;
                 return _preprocessingResult;
             }
@@ -70,22 +74,33 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             }
             else
             {
-                var bits = newObjectDescription.Split('-');
-                var listProperty = GetProperty(string.Empty, bits[0]);
-                var listValue = listProperty.GetValue(CurrentValuesObject);
-                var enumerator = (listValue as ICollection).GetEnumerator();
-                var targetIndex = int.Parse(bits[1]);
-                var currentIndex = 0;
-                while (enumerator.MoveNext())
+                _nestTraversalCounter++;
+                var isCurrentLevel = _nestTraversalCounter == CurrentNestingLevel;
+                if (isCurrentLevel)
                 {
-                    if (currentIndex == targetIndex)
+                    var bits = newObjectDescription.Split('-');
+                    var listProperty = GetProperty(string.Empty, bits[0]);
+                    var listValue = listProperty.GetValue(CurrentValuesObject);
+                    var enumerator = (listValue as ICollection).GetEnumerator();
+                    var targetIndex = int.Parse(bits[1]);
+                    var currentIndex = 0;
+                    while (enumerator.MoveNext())
                     {
-                        _nestingStack.Push(new NestingInformation(targetIndex, enumerator.Current));
-                        return string.Empty;
+                        if (currentIndex == targetIndex)
+                        {
+                            _nestingStack.Push(new NestingInformation(targetIndex, enumerator.Current));
+                            return string.Empty;
+                        }
+
+                        currentIndex++;
                     }
-                    currentIndex++;
+
+                    throw new Exception("Could not find object to read from in nested list");
                 }
-                throw new Exception("Could not find object to read from in nested list");
+                else
+                {
+                    return line;
+                }
             }
         }
 
@@ -98,8 +113,17 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             }
             else
             {
-                _nestingStack.Pop();
-                return string.Empty;
+                if (_nestTraversalCounter == CurrentNestingLevel)
+                {
+                    _nestingStack.Pop();
+                    _nestTraversalCounter--;
+                    return string.Empty;
+                }
+                else
+                {
+                    _nestTraversalCounter--;
+                    return line;
+                }
             }
         }
 
@@ -113,6 +137,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                 inlineTags = GetFirstTagPair(line, InLineTagPrefix);
                 hasTags = inlineTags != null;
             }
+
             return line;
         }
 
@@ -155,6 +180,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 return null;
             }
+
             var valueAsList = value as ICollection;
             if (valueAsList == null)
             {
@@ -206,6 +232,7 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
             {
                 placeHolderValue = GetListObjectValueFromExplicitPropertyName(enumerator, valuePropertyName);
             }
+
             return placeHolderValue;
         }
 
@@ -233,10 +260,11 @@ namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreproce
                 _preprocessingResult.Placeholders.Add(new TemplatePlaceholder
                 {
                     Placeholder = indexedPlaceholderName,
-                    Text = placeHolderValue
+                    Text = placeHolderValue,
                 });
                 valueIndex++;
             }
+
             return $"{outerText[0]}{newMiddle}{outerText[1]}";
         }
     }

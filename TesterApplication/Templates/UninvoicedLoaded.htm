@@ -1,0 +1,77 @@
+﻿<html>
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Roboto|Ubuntu" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        table {
+            width: 98%;
+            margin-left: 10px;
+        }
+
+        th, td {
+            padding: 11px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #4286f4;
+            color: white;
+        }
+
+            th.late {
+                background-color: #f45642;
+                color: white;
+            }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div style="overflow-x:auto;">
+        <table>
+            <tr>
+                <th>
+                    Customer
+                </th>
+                <th style="text-align: left">
+                    Reg Number
+                </th>
+                <th>
+                    Make
+                </th>
+                <th style="text-align: left">
+                    Model
+                </th>
+                <th style="text-align: left">
+                    Vessel
+                </th>
+                <th style="text-align: left">
+                    Port of Discharge
+                </th>
+            </tr>
+            <lb-items>
+                <tr colspan="6">{{Group}}</tr>
+                <lb-rows>
+                    <tr>
+                        <td>{{Customer}}</td>
+                        <td>{{RegNumber}}</td>
+                        <td>{{Make}}</td>
+                        <td>{{Model}}</td>
+                    </tr>
+                </lb-rows>
+            </lb-items>
+        </table>
+    </div>
+    <br /><br />
+</body>
+</html>

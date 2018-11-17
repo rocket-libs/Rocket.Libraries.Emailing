@@ -4,6 +4,7 @@ namespace Rocket.Libraries.Emailing.Models
     {
         
         public string Placeholder {get; set;}
+
         public string Text {get; set;}
     }
 }
