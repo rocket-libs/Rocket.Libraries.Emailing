@@ -216,6 +216,7 @@ namespace Rocket.Libraries.Emailing.Services
                 AppendAttachmentFromTemplateIfExists(transmission);
                 AppendAttachmentFromFilesIfExists(transmission);
 
+                ThrowExceptionOnUnResolvedPlaceholder(transmission.Content.Html);
                 await sparkPostClient.CreateTransmission(transmission);
                 return new EmailSendingResult { Succeeded = true };
             }
@@ -265,6 +266,31 @@ namespace Rocket.Libraries.Emailing.Services
                 _recepients.Clear();
                 _recepients.Add(EmailingSettings.DevelopmentEmail);
                 _body = debugInfo + "<br/><br/>" + _body + "<br/><br/>";
+            }
+        }
+
+        private void ThrowExceptionOnUnResolvedPlaceholder(string content)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                return;
+            }
+
+            var startPos = content.IndexOf("{{", StringComparison.InvariantCultureIgnoreCase);
+            var didntFindStarter = startPos < 0;
+            if (didntFindStarter)
+            {
+                return;
+            }
+            else
+            {
+                var endPos = content.IndexOf("}}", startPos, StringComparison.InvariantCultureIgnoreCase);
+                var foundEnder = endPos >= 0;
+                if (foundEnder)
+                {
+                    var placeholder = content.Substring(startPos, endPos);
+                    new DataValidator().EvaluateImmediate(() => true, $"Unresolved place holder '{placeholder}'");
+                }
             }
         }
 

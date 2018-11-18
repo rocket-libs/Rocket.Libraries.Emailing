@@ -20,7 +20,7 @@ namespace TesterApplication
 
             try
             {
-                new Sections().SendAsync().GetAwaiter().GetResult();
+                new SubstituteAgreedTests().SendAsync().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)
