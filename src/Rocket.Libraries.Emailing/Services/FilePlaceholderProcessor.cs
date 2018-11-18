@@ -1,17 +1,25 @@
-﻿using Rocket.Libraries.Emailing.Models;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services
 {
-    internal class FilePlaceholderProcessor
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using Rocket.Libraries.Emailing.Models;
+
+    public class FilePlaceholderProcessor
     {
+        private readonly TemplateReader _templateReader;
+
         private PlaceholderWriter _placeholderWriter = new PlaceholderWriter();
+
+        public FilePlaceholderProcessor(TemplateReader templateReader)
+        {
+            _templateReader = templateReader;
+        }
+
         public string PreprocessFilePlaceholdersIfRequired(string content, List<FilePlaceholder> filePlaceholders)
         {
-            if(filePlaceholders == null || filePlaceholders.Count == 0)
+            if (filePlaceholders == null || filePlaceholders.Count == 0)
             {
                 return content;
             }
@@ -21,37 +29,26 @@ namespace Rocket.Libraries.Emailing.Services
                 {
                     content = InjectAPlaceholder(content, item);
                 }
+
                 return content;
             }
         }
 
         private string InjectAPlaceholder(string content, FilePlaceholder filePlaceholder)
         {
-            ThrowExceptionIfFileMissing(filePlaceholder.File);
             var templatePlaceholder = new TemplatePlaceholder
             {
                 Placeholder = filePlaceholder.Placeholder,
                 Text = string.Empty
             };
-            using (var fs = new FileStream(filePlaceholder.File, FileMode.Open, FileAccess.Read))
+            var fileLines = _templateReader.GetContentFromTemplate(filePlaceholder.File);
+            var stringBuilder = new StringBuilder();
+            foreach (var line in fileLines)
             {
-                using (var stream = new StreamReader(fs))
-                {
-                    while (stream.EndOfStream == false)
-                    {
-                        templatePlaceholder.Text += stream.ReadLine();
-                    }
-                }
+                stringBuilder.AppendLine(line);
             }
+            templatePlaceholder.Text = stringBuilder.ToString();
             return _placeholderWriter.GetWithPlaceholdersReplaced(content, new List<TemplatePlaceholder> { templatePlaceholder });
-        }
-
-        private void ThrowExceptionIfFileMissing(string file)
-        {
-            if(!File.Exists(file))
-            {
-                throw new Exception($"File '{file}' specified as a placeholder datasource does not exist");
-            }
         }
     }
 }

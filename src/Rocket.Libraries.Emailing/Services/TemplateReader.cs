@@ -5,16 +5,22 @@
     using System.IO;
     using Rocket.Libraries.Emailing.Models;
 
-    internal class TemplateReader
+    public class TemplateReader
     {
         private readonly EmailingSettings _emailingSettings;
+
+        [Obsolete("This parameterless constructor only exists to allow mocking during testing. Using this constructor for production code will almost certainly result in failure")]
+        public TemplateReader()
+        {
+
+        }
 
         public TemplateReader(EmailingSettings emailingSettings)
         {
             _emailingSettings = emailingSettings;
         }
 
-        public List<string> GetContentFromTemplate(string template)
+        public virtual List<string> GetContentFromTemplate(string template)
         {
             var templatePath = $@"{_emailingSettings.TemplatesDirectory}/{template}";
             var result = new List<string>();

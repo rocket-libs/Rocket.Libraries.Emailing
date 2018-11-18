@@ -6,6 +6,7 @@ namespace Rocket.Libraries.Emailing.Services
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
@@ -33,7 +34,11 @@ namespace Rocket.Libraries.Emailing.Services
         private List<string> _bodyTemplateLines;
         private SenderInformation _senderInformation;
         private List<FilePlaceholder> _filePlaceholders = new List<FilePlaceholder>();
-        private FilePlaceholderProcessor _filePlaceholderProcessor = new FilePlaceholderProcessor();
+
+        private ILoggerFactory LoggerFactory { get; set; }
+
+        private ILogger _logger;
+
 
         private EmailingSettings EmailingSettings
         {
@@ -82,10 +87,39 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
+        private ILogger Logger
+        {
+            get
+            {
+                if (_logger != null)
+                {
+                    return _logger;
+                }
+                else
+                {
+                    if (LoggerFactory == null)
+                    {
+                        return null;
+                    }
+                    else
+                    {
+                        _logger = LoggerFactory.CreateLogger<EmailBuilder>();
+                        return _logger;
+                    }
+                }
+            }
+        }
+
         public EmailBuilder()
         {
             SetConfiguration(new ConfigReader().ReadConfiguration());
             CleanUp();
+        }
+
+        public EmailBuilder AddLoggerFactory(ILoggerFactory loggerFactory)
+        {
+            loggerFactory = loggerFactory;
+            return this;
         }
 
         public EmailBuilder AddPlaceholdersObject(object placeholdersObject)
@@ -164,6 +198,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                var filePlaceholderProcessor = new FilePlaceholderProcessor(TemplateReader);
                 PreprocessObjectTemplatesIfRequired();
                 FailIfContentMissing();
                 PreprocessForDevelopmentIfNeeded();
@@ -172,9 +207,10 @@ namespace Rocket.Libraries.Emailing.Services
                 transmission.Content.From.EMail = _senderInformation.SenderEmail;
                 transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_senderInformation.SenderName, _placeholders);
                 transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
-                _body = _filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
+                _body = filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
                 transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
-
+                Logger?.LogDebug("Out going email body");
+                Logger?.LogDebug(transmission.Content.Html);
                 InjectRecepients(transmission);
 
                 AppendAttachmentFromTemplateIfExists(transmission);

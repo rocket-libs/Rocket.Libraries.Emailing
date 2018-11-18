@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Rocket.Libraries.Emailing.Models
+﻿namespace Rocket.Libraries.Emailing.Models
 {
-    internal class FilePlaceholder
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
+    public class FilePlaceholder
     {
         public string Placeholder { get; set; }
         public string File { get; set; }
