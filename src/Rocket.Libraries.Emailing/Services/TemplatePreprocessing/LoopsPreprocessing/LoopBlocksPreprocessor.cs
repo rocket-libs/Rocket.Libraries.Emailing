@@ -1,12 +1,12 @@
 ﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
 {
+    using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Validation.Services;
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using Rocket.Libraries.Emailing.Models;
-    using Rocket.Libraries.Validation.Services;
 
     public class LoopBlocksPreprocessor : PreProcessor
     {
@@ -23,13 +23,15 @@
             var results = new PreprocessingResult
             {
                 TemplateLines = new List<string>(),
+                Placeholders = new List<TemplatePlaceholder>(),
             };
 
             for (var i = 0; i < TemplateLines.Count; i++)
             {
                 if (LineContainsStartOfBlock(TemplateLines[i]))
                 {
-                    results = InjectBlocks(i);
+                    var injectionResult = InjectBlocks(i);
+                    GrowResult(results, injectionResult);
                     i = -1;
                 }
             }
@@ -41,6 +43,25 @@
             }
 
             return results;
+        }
+
+        private void GrowResult(PreprocessingResult result, PreprocessingResult injectionResult)
+        {
+            var hasInjectionResult = injectionResult != null;
+            if (hasInjectionResult)
+            {
+                var hasInjectionTemplateLines = injectionResult.TemplateLines != null && injectionResult.TemplateLines.Count > 0;
+                var hasInjectionPlaceHolders = injectionResult.Placeholders != null && injectionResult.Placeholders.Count > 0;
+                if (hasInjectionTemplateLines)
+                {
+                    result.TemplateLines = injectionResult.TemplateLines;
+                }
+
+                if (hasInjectionPlaceHolders)
+                {
+                    result.Placeholders.AddRange(injectionResult.Placeholders);
+                }
+            }
         }
 
         private bool LineContainsStartOfBlock(string line)
