@@ -1,10 +1,5 @@
 namespace Rocket.Libraries.Emailing.Services
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Options;
     using Rocket.Libraries.Emailing.Models;
@@ -12,6 +7,11 @@ namespace Rocket.Libraries.Emailing.Services
     using Rocket.Libraries.Validation.Services;
     using SparkPostDotNet;
     using SparkPostDotNet.Transmissions;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using System.Threading.Tasks;
     using Options = Microsoft.Extensions.Options.Options;
 
     public class EmailBuilder
@@ -140,6 +140,17 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder AddPlaceholders(List<TemplatePlaceholder> placeholders)
         {
             _placeholders = placeholders;
+            return this;
+        }
+
+        public EmailBuilder AddPlaceholder(string name, object value)
+        {
+            var placeholder = new TemplatePlaceholder
+            {
+                Placeholder = "{{" + name + "}}",
+                Text = value.ToString(),
+            };
+            _placeholders.Add(placeholder);
             return this;
         }
 
