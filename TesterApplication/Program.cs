@@ -19,7 +19,7 @@ namespace TesterApplication
 
             try
             {
-                new CCTesting().TestCCsAreSentCorrectly().GetAwaiter().GetResult();
+                new LegacySupport().PureBCCingBehaviourStillWorks().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)
