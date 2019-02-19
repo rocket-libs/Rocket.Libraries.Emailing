@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore;
+using System;
 using TesterApplication.Tests;
 
 namespace TesterApplication
@@ -19,7 +19,7 @@ namespace TesterApplication
 
             try
             {
-                new LoopBlocksTester().SendNestedAsync().GetAwaiter().GetResult();
+                new CCTesting().TestCCsAreSentCorrectly().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)

@@ -34,6 +34,8 @@ namespace Rocket.Libraries.Emailing.Services
         private SenderInformation _senderInformation;
         private List<FilePlaceholder> _filePlaceholders = new List<FilePlaceholder>();
         private FilePlaceholderProcessor _filePlaceholderProcessor = new FilePlaceholderProcessor();
+        private List<string> _ccList;
+        private string _primaryRecepient;
 
         private EmailingSettings EmailingSettings
         {
@@ -117,11 +119,32 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
+        [Obsolete("This method defaults to BCC. Please Use the more descriptive 'SetPrimaryRecepient', 'AddBCCRecepient' and 'AddCCRecepient' methods")]
         public EmailBuilder AddRecepient(string recepient)
         {
-            FailOnInvalidEmail(recepient);
-            _recepients.Add(recepient);
-            return this;
+            return QueueRecepient(recepient);
+        }
+
+        /// <summary>
+        /// Sets the primary recepient for the message. There can only be one
+        /// </summary>
+        /// <param name="recepient">The email address of the primary recepient</param>
+        /// <returns>Instance of the <see cref="EmailBuilder"/></returns>
+        public EmailBuilder SetPrimaryRecepient(string recepient)
+        {
+            _primaryRecepient = recepient;
+            return QueueRecepient(recepient);
+        }
+
+        public EmailBuilder AddBCCRecepient(string recepient)
+        {
+            return QueueRecepient(recepient);
+        }
+
+        public EmailBuilder AddCCRecepient(string recepient)
+        {
+            _ccList.Add(recepient);
+            return QueueRecepient(recepient);
         }
 
         public EmailBuilder AddSubject(string subject)
@@ -187,6 +210,7 @@ namespace Rocket.Libraries.Emailing.Services
                 transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
 
                 InjectRecepients(transmission);
+                SpecifyCCsIfAvailable(transmission);
 
                 AppendAttachmentFromTemplateIfExists(transmission);
                 AppendAttachmentFromFilesIfExists(transmission);
@@ -214,6 +238,13 @@ namespace Rocket.Libraries.Emailing.Services
                 throw new NullReferenceException("Could not find SparkPost integration settings in your appsettings.json file");
             }
 
+            return this;
+        }
+
+        private EmailBuilder QueueRecepient(string recepient)
+        {
+            FailOnInvalidEmail(recepient);
+            _recepients.Add(recepient);
             return this;
         }
 
@@ -245,11 +276,42 @@ namespace Rocket.Libraries.Emailing.Services
 
         private void InjectRecepients(Transmission transmission)
         {
-            foreach (var bcc in _recepients)
+            foreach (var party in _recepients)
             {
                 var recipient = new Recipient();
-                recipient.Address.EMail = bcc;
+                recipient.Address.EMail = party;
+                AddHeaderToValueIfPrimaryRecepientAvailable(recipient);
                 transmission.Recipients.Add(recipient);
+            }
+        }
+
+        private void SpecifyCCsIfAvailable(Transmission transmission)
+        {
+            var ccs = string.Empty;
+            foreach (var cc in _ccList)
+            {
+                ccs += $"{cc},";
+            }
+
+            var hasCCs = !string.IsNullOrEmpty(ccs);
+
+            if (hasCCs)
+            {
+                ccs = ccs.Substring(0, ccs.Length - 1);
+                transmission.Content.Headers = new
+                {
+                    CC = ccs,
+                };
+                var x = 1 * 7;
+            }
+        }
+
+        private void AddHeaderToValueIfPrimaryRecepientAvailable(Recipient recipient)
+        {
+            var hasPrimaryRecepient = string.IsNullOrEmpty(_primaryRecepient) == false;
+            if (hasPrimaryRecepient)
+            {
+                recipient.Address.HeaderTo = _primaryRecepient;
             }
         }
 
@@ -353,6 +415,7 @@ namespace Rocket.Libraries.Emailing.Services
                 .AddSubject(string.Empty);
             _recepients = new List<string>();
             _senderInformation = new SenderInformation();
+            _ccList = new List<string>();
         }
     }
 }
