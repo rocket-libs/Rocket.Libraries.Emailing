@@ -264,13 +264,35 @@ namespace Rocket.Libraries.Emailing.Services
                 appendLine("Actual Recepients", string.Empty);
                 foreach (var item in _recepients)
                 {
-                    appendLine("Recepient " + counter, item);
+                    var isPrimary = Matches(item, _primaryRecepient);
+                    var isCC = false;
+                    _ccList.ForEach(cc =>
+                    {
+                        isCC = isCC || Matches(item, cc);
+                    });
+
+                    var tag = isPrimary ? "Primary" : isCC ? "CC" : "BCC";
+
+                    appendLine("Recepient " + counter + $"({tag})", item);
                     counter++;
                 }
 
+                _ccList.Clear();
                 _recepients.Clear();
                 _recepients.Add(EmailingSettings.DevelopmentEmail);
                 _body = debugInfo + "<br/><br/>" + _body + "<br/><br/>";
+            }
+        }
+
+        private bool Matches(string recepient, string test)
+        {
+            if (string.IsNullOrEmpty(test))
+            {
+                return false;
+            }
+            else
+            {
+                return test.Equals(recepient, StringComparison.InvariantCultureIgnoreCase);
             }
         }
 
@@ -302,7 +324,6 @@ namespace Rocket.Libraries.Emailing.Services
                 {
                     CC = ccs,
                 };
-                var x = 1 * 7;
             }
         }
 
