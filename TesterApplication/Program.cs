@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore;
 using TesterApplication.Tests;
+using TesterApplication.Tests.Templates;
 
 namespace TesterApplication
 {
@@ -19,7 +20,7 @@ namespace TesterApplication
 
             try
             {
-                new LoopBlocksTester().SendNestedAsync().GetAwaiter().GetResult();
+                new SubstituteAgreedTests().SendAsync().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)

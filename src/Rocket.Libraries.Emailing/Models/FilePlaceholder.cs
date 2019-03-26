@@ -4,10 +4,9 @@
     using System.Collections.Generic;
     using System.Text;
 
-    public class NestedBlockDescription
+    public class FilePlaceholder
     {
-        public TagPair ParentTag { get; set; }
-
-        public TagPair ChildTag { get; set; }
+        public string Placeholder { get; set; }
+        public string File { get; set; }
     }
 }

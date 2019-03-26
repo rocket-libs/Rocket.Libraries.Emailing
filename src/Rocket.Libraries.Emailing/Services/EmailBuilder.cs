@@ -6,6 +6,7 @@ namespace Rocket.Libraries.Emailing.Services
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
@@ -32,6 +33,12 @@ namespace Rocket.Libraries.Emailing.Services
         private object _placeholdersObject;
         private List<string> _bodyTemplateLines;
         private SenderInformation _senderInformation;
+        private List<FilePlaceholder> _filePlaceholders = new List<FilePlaceholder>();
+
+        private ILoggerFactory LoggerFactory { get; set; }
+
+        private ILogger _logger;
+
 
         private EmailingSettings EmailingSettings
         {
@@ -80,15 +87,54 @@ namespace Rocket.Libraries.Emailing.Services
             }
         }
 
+        private ILogger Logger
+        {
+            get
+            {
+                if (_logger != null)
+                {
+                    return _logger;
+                }
+                else
+                {
+                    if (LoggerFactory == null)
+                    {
+                        return null;
+                    }
+                    else
+                    {
+                        _logger = LoggerFactory.CreateLogger<EmailBuilder>();
+                        return _logger;
+                    }
+                }
+            }
+        }
+
         public EmailBuilder()
         {
             SetConfiguration(new ConfigReader().ReadConfiguration());
             CleanUp();
         }
 
+        public EmailBuilder AddLoggerFactory(ILoggerFactory loggerFactory)
+        {
+            loggerFactory = loggerFactory;
+            return this;
+        }
+
         public EmailBuilder AddPlaceholdersObject(object placeholdersObject)
         {
             this._placeholdersObject = placeholdersObject;
+            return this;
+        }
+
+        public EmailBuilder AddFilePlaceholder(string placeholder, string file)
+        {
+            _filePlaceholders.Add(new FilePlaceholder
+            {
+                File = file,
+                Placeholder = placeholder,
+            });
             return this;
         }
 
@@ -152,6 +198,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             try
             {
+                var filePlaceholderProcessor = new FilePlaceholderProcessor(TemplateReader);
                 PreprocessObjectTemplatesIfRequired();
                 FailIfContentMissing();
                 PreprocessForDevelopmentIfNeeded();
@@ -160,13 +207,16 @@ namespace Rocket.Libraries.Emailing.Services
                 transmission.Content.From.EMail = _senderInformation.SenderEmail;
                 transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_senderInformation.SenderName, _placeholders);
                 transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
+                _body = filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
                 transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
-
+                Logger?.LogDebug("Out going email body");
+                Logger?.LogDebug(transmission.Content.Html);
                 InjectRecepients(transmission);
 
                 AppendAttachmentFromTemplateIfExists(transmission);
                 AppendAttachmentFromFilesIfExists(transmission);
 
+                ThrowExceptionOnUnResolvedPlaceholder(transmission.Content.Html);
                 await sparkPostClient.CreateTransmission(transmission);
                 return new EmailSendingResult { Succeeded = true };
             }
@@ -216,6 +266,31 @@ namespace Rocket.Libraries.Emailing.Services
                 _recepients.Clear();
                 _recepients.Add(EmailingSettings.DevelopmentEmail);
                 _body = debugInfo + "<br/><br/>" + _body + "<br/><br/>";
+            }
+        }
+
+        private void ThrowExceptionOnUnResolvedPlaceholder(string content)
+        {
+            if (string.IsNullOrEmpty(content))
+            {
+                return;
+            }
+
+            var startPos = content.IndexOf("{{", StringComparison.InvariantCultureIgnoreCase);
+            var didntFindStarter = startPos < 0;
+            if (didntFindStarter)
+            {
+                return;
+            }
+            else
+            {
+                var endPos = content.IndexOf("}}", startPos, StringComparison.InvariantCultureIgnoreCase);
+                var foundEnder = endPos >= 0;
+                if (foundEnder)
+                {
+                    var placeholder = content.Substring(startPos, endPos);
+                    new DataValidator().EvaluateImmediate(() => true, $"Unresolved place holder '{placeholder}'");
+                }
             }
         }
 
