@@ -21,6 +21,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.1" />
     <PackageReference Include="Rocket.Libraries.Validation" Version="1.1.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
+    <PackageReference Include="Rocket.Libraries.Validation" Version="1.0.0-beta02" />
     <PackageReference Include="SparkPostDotNet" Version="0.3.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta009">
       <PrivateAssets>all</PrivateAssets>

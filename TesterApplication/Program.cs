@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using System;
 using TesterApplication.Tests;
+using TesterApplication.Tests.Templates;
 
 namespace TesterApplication
 {
@@ -19,6 +20,7 @@ namespace TesterApplication
 
             try
             {
+                new SubstituteAgreedTests().SendAsync().GetAwaiter().GetResult();
                 new LegacySupport().PureBCCingBehaviourStillWorks().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
