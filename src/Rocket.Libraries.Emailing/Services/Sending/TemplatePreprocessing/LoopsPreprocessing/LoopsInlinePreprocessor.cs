@@ -1,11 +1,10 @@
-﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing
 {
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using System.Text;
     using Rocket.Libraries.Emailing.Models;
 
     public class LoopsInlinePreprocessor : PreProcessor

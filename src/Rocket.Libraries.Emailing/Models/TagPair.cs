@@ -1,9 +1,5 @@
 ﻿namespace Rocket.Libraries.Emailing.Models
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
     public class TagPair
     {
         public TagPair(string prefix, string rawTag)

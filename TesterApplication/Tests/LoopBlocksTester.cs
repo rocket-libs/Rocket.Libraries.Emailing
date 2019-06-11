@@ -1,9 +1,6 @@
 ﻿using Furaha.Services.Logic.Legacy.Models.Reporting;
-using Rocket.Libraries.Emailing.Services;
-using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
+using Rocket.Libraries.Emailing.Services.Sending;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using TesterApplication.Models;
 

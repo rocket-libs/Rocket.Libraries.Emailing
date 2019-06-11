@@ -1,4 +1,4 @@
-﻿using Rocket.Libraries.Emailing.Services;
+﻿using Rocket.Libraries.Emailing.Services.Sending;
 using System.Threading.Tasks;
 
 namespace TesterApplication.Tests

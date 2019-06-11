@@ -1,13 +1,11 @@
 ﻿using Rocket.Libraries.Emailing.Models;
-using Rocket.Libraries.Emailing.Services;
-using System;
+using Rocket.Libraries.Emailing.Services.Sending;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace TesterApplication.Tests.Templates
 {
-    class SubstituteAgreedTests
+    internal class SubstituteAgreedTests
     {
         public async Task SendAsync()
         {

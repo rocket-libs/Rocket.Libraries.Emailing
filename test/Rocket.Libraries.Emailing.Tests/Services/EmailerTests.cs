@@ -1,5 +1,5 @@
 ﻿using Rocket.Libraries.Emailing.Models;
-using Rocket.Libraries.Emailing.Services;
+using Rocket.Libraries.Emailing.Services.Sending;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

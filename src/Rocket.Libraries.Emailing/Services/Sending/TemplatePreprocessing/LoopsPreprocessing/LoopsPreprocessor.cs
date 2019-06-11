@@ -1,9 +1,6 @@
-﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing
 {
-    using System;
     using System.Collections.Generic;
-    using System.Text;
-    using Newtonsoft.Json;
     using Rocket.Libraries.Emailing.Models;
 
     public class LoopsPreprocessor : PreProcessor

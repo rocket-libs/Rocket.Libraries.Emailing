@@ -1,4 +1,4 @@
-﻿namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services.Sending
 {
     using System;
     using System.Collections.Generic;
@@ -12,7 +12,6 @@
         [Obsolete("This parameterless constructor only exists to allow mocking during testing. Using this constructor for production code will almost certainly result in failure")]
         public TemplateReader()
         {
-
         }
 
         public TemplateReader(EmailingSettings emailingSettings)

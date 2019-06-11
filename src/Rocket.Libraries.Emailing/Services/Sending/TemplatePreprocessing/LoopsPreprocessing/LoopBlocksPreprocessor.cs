@@ -1,4 +1,4 @@
-﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing
 {
     using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Validation.Services;

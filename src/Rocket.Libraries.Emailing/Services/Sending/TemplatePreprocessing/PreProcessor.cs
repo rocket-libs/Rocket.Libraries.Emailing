@@ -1,4 +1,4 @@
-﻿namespace Rocket.Libraries.Emailing.Services.TemplatePreprocessing
+﻿namespace Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing
 {
     using System;
     using System.Collections.Generic;

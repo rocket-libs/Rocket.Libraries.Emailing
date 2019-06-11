@@ -1,12 +1,9 @@
-﻿using Rocket.Libraries.Emailing.Services;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Rocket.Libraries.Emailing.Services.Sending;
 using System.Threading.Tasks;
 
 namespace TesterApplication.Tests.Templates
 {
-    class Sections
+    internal class Sections
     {
         public async Task SendAsync()
         {
@@ -14,7 +11,7 @@ namespace TesterApplication.Tests.Templates
                 .AddBodyAsTemplate("request-substitution.htm")
                 .AddFilePlaceholder("{{head}}", "sections/head.section")
                 .AddRecepient("nyingimaina@gmail.com")
-                .AddSender("nyingimaina@rocketdocuments.com","Nyingi Maina")
+                .AddSender("nyingimaina@rocketdocuments.com", "Nyingi Maina")
                 .AddSubject("Hi")
                 .BuildAsync();
         }

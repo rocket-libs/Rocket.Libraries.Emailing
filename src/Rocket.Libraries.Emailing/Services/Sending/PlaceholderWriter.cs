@@ -1,4 +1,4 @@
-﻿namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services.Sending
 {
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
