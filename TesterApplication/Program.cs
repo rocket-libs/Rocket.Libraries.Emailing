@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore;
+using System;
 using TesterApplication.Tests;
 using TesterApplication.Tests.Templates;
 
@@ -21,6 +21,7 @@ namespace TesterApplication
             try
             {
                 new SubstituteAgreedTests().SendAsync().GetAwaiter().GetResult();
+                new LegacySupport().PureBCCingBehaviourStillWorks().GetAwaiter().GetResult();
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)

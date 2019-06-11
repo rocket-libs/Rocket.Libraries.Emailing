@@ -44,7 +44,6 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                 .BuildAsync();
         }
 
-
         [Fact]
         public async Task VerifyMissingRecipentIsReported()
         {
@@ -73,6 +72,18 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                 .AddRecepient("Subject");
             var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
             Assert.Contains("Subject", ex.Message);
+        }
+
+        [Fact]
+        public async Task TestCCsAreSentCorrectly()
+        {
+            await new EmailBuilder()
+                .AddBodyAsText("This is just a test")
+                .AddCCRecepient("nyingimaina@gmail.com")
+                .SetPrimaryRecepient("nyingi.maina@outlook.com")
+                .AddSender("nyingimaina@rocket-documents.com", "Nyingi")
+                .AddSubject("CC Test")
+                .BuildAsync();
         }
     }
 }

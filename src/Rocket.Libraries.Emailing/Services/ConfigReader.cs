@@ -3,7 +3,7 @@
     using System;
     using Microsoft.Extensions.Configuration;
 
-    class ConfigReader
+    internal class ConfigReader
     {
         public IConfiguration ReadConfiguration()
         {

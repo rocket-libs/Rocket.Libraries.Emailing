@@ -1,10 +1,5 @@
 namespace Rocket.Libraries.Emailing.Services
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
-    using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
@@ -13,6 +8,11 @@ namespace Rocket.Libraries.Emailing.Services
     using Rocket.Libraries.Validation.Services;
     using SparkPostDotNet;
     using SparkPostDotNet.Transmissions;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using System.Threading.Tasks;
     using Options = Microsoft.Extensions.Options.Options;
 
     public class EmailBuilder
@@ -35,10 +35,14 @@ namespace Rocket.Libraries.Emailing.Services
         private SenderInformation _senderInformation;
         private List<FilePlaceholder> _filePlaceholders = new List<FilePlaceholder>();
 
+        //private FilePlaceholderProcessor _filePlaceholderProcessor = new FilePlaceholderProcessor();
+        private List<string> _ccList;
+
+        private string _primaryRecepient;
+
         private ILoggerFactory LoggerFactory { get; set; }
 
         private ILogger _logger;
-
 
         private EmailingSettings EmailingSettings
         {
@@ -151,11 +155,32 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
+        [Obsolete("This method defaults to BCC. Please Use the more descriptive 'SetPrimaryRecepient', 'AddBCCRecepient' and 'AddCCRecepient' methods")]
         public EmailBuilder AddRecepient(string recepient)
         {
-            FailOnInvalidEmail(recepient);
-            _recepients.Add(recepient);
-            return this;
+            return QueueRecepient(recepient);
+        }
+
+        /// <summary>
+        /// Sets the primary recepient for the message. There can only be one
+        /// </summary>
+        /// <param name="recepient">The email address of the primary recepient</param>
+        /// <returns>Instance of the <see cref="EmailBuilder"/></returns>
+        public EmailBuilder SetPrimaryRecepient(string recepient)
+        {
+            _primaryRecepient = recepient;
+            return QueueRecepient(recepient);
+        }
+
+        public EmailBuilder AddBCCRecepient(string recepient)
+        {
+            return QueueRecepient(recepient);
+        }
+
+        public EmailBuilder AddCCRecepient(string recepient)
+        {
+            _ccList.Add(recepient);
+            return QueueRecepient(recepient);
         }
 
         public EmailBuilder AddSubject(string subject)
@@ -174,6 +199,17 @@ namespace Rocket.Libraries.Emailing.Services
         public EmailBuilder AddPlaceholders(List<TemplatePlaceholder> placeholders)
         {
             _placeholders = placeholders;
+            return this;
+        }
+
+        public EmailBuilder AddPlaceholder(string name, object value)
+        {
+            var placeholder = new TemplatePlaceholder
+            {
+                Placeholder = "{{" + name + "}}",
+                Text = value.ToString(),
+            };
+            _placeholders.Add(placeholder);
             return this;
         }
 
@@ -212,6 +248,7 @@ namespace Rocket.Libraries.Emailing.Services
                 Logger?.LogDebug("Out going email body");
                 Logger?.LogDebug(transmission.Content.Html);
                 InjectRecepients(transmission);
+                SpecifyCCsIfAvailable(transmission);
 
                 AppendAttachmentFromTemplateIfExists(transmission);
                 AppendAttachmentFromFilesIfExists(transmission);
@@ -243,6 +280,13 @@ namespace Rocket.Libraries.Emailing.Services
             return this;
         }
 
+        private EmailBuilder QueueRecepient(string recepient)
+        {
+            FailOnInvalidEmail(recepient);
+            _recepients.Add(recepient);
+            return this;
+        }
+
         private void FailOnInvalidEmail(string emailAddress)
         {
             new DataValidator().EvaluateImmediate(() => EmailingValidations.IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
@@ -259,13 +303,35 @@ namespace Rocket.Libraries.Emailing.Services
                 appendLine("Actual Recepients", string.Empty);
                 foreach (var item in _recepients)
                 {
-                    appendLine("Recepient " + counter, item);
+                    var isPrimary = Matches(item, _primaryRecepient);
+                    var isCC = false;
+                    _ccList.ForEach(cc =>
+                    {
+                        isCC = isCC || Matches(item, cc);
+                    });
+
+                    var tag = isPrimary ? "Primary" : isCC ? "CC" : "BCC";
+
+                    appendLine("Recepient " + counter + $"({tag})", item);
                     counter++;
                 }
 
+                _ccList.Clear();
                 _recepients.Clear();
                 _recepients.Add(EmailingSettings.DevelopmentEmail);
                 _body = debugInfo + "<br/><br/>" + _body + "<br/><br/>";
+            }
+        }
+
+        private bool Matches(string recepient, string test)
+        {
+            if (string.IsNullOrEmpty(test))
+            {
+                return false;
+            }
+            else
+            {
+                return test.Equals(recepient, StringComparison.InvariantCultureIgnoreCase);
             }
         }
 
@@ -296,11 +362,41 @@ namespace Rocket.Libraries.Emailing.Services
 
         private void InjectRecepients(Transmission transmission)
         {
-            foreach (var bcc in _recepients)
+            foreach (var party in _recepients)
             {
                 var recipient = new Recipient();
-                recipient.Address.EMail = bcc;
+                recipient.Address.EMail = party;
+                AddHeaderToValueIfPrimaryRecepientAvailable(recipient);
                 transmission.Recipients.Add(recipient);
+            }
+        }
+
+        private void SpecifyCCsIfAvailable(Transmission transmission)
+        {
+            var ccs = string.Empty;
+            foreach (var cc in _ccList)
+            {
+                ccs += $"{cc},";
+            }
+
+            var hasCCs = !string.IsNullOrEmpty(ccs);
+
+            if (hasCCs)
+            {
+                ccs = ccs.Substring(0, ccs.Length - 1);
+                transmission.Content.Headers = new
+                {
+                    CC = ccs,
+                };
+            }
+        }
+
+        private void AddHeaderToValueIfPrimaryRecepientAvailable(Recipient recipient)
+        {
+            var hasPrimaryRecepient = string.IsNullOrEmpty(_primaryRecepient) == false;
+            if (hasPrimaryRecepient)
+            {
+                recipient.Address.HeaderTo = _primaryRecepient;
             }
         }
 
@@ -404,6 +500,7 @@ namespace Rocket.Libraries.Emailing.Services
                 .AddSubject(string.Empty);
             _recepients = new List<string>();
             _senderInformation = new SenderInformation();
+            _ccList = new List<string>();
         }
     }
 }
