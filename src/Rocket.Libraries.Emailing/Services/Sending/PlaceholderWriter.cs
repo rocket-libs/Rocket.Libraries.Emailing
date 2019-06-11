@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.Text.RegularExpressions;
     using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Models.Sending;
 
     internal class PlaceholderWriter
     {

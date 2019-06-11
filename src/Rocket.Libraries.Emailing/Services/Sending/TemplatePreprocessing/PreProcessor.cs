@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Reflection;
     using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Models.Sending;
 
     public abstract class PreProcessor
     {

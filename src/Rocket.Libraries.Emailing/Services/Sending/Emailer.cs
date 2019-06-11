@@ -5,6 +5,7 @@ namespace Rocket.Libraries.Emailing.Services.Sending
     using System.Threading.Tasks;
     using Microsoft.Extensions.Configuration;
     using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Models.Sending;
 
     public class Emailer
     {

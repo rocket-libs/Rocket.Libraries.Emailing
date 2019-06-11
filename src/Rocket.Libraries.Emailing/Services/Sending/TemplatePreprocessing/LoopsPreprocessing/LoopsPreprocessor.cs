@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Models.Sending;
 
     public class LoopsPreprocessor : PreProcessor
     {

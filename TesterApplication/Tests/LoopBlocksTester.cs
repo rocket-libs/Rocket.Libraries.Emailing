@@ -1,4 +1,5 @@
 ﻿using Furaha.Services.Logic.Legacy.Models.Reporting;
+using Rocket.Libraries.Emailing.Models.Sending;
 using Rocket.Libraries.Emailing.Services.Sending;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -98,24 +99,24 @@ namespace TesterApplication.Tests
                 .AddRecepient("nyingimaina@gmail.com")
                 .AddPlaceholdersObject(telexRequestInformation)
                 .AddSender("nyingi@rocketdocuments.com", "Nyingi's Rocket Email")
-                .AddPlaceholders(new List<Rocket.Libraries.Emailing.Models.TemplatePlaceholder>
+                .AddPlaceholders(new List<TemplatePlaceholder>
                 {
-                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    new TemplatePlaceholder
                     {
                         Placeholder = "{{vessel-name}}",
                         Text = "Rita"
                     },
-                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    new TemplatePlaceholder
                     {
                         Placeholder = "{{voyage-name}}",
                         Text = "Pushing Boundaries"
                     },
-                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    new TemplatePlaceholder
                     {
                         Placeholder = "{{sender-name}}",
                         Text = "Jane Cho"
                     },
-                    new Rocket.Libraries.Emailing.Models.TemplatePlaceholder
+                    new TemplatePlaceholder
                     {
                         Placeholder = "{{sender-email}}",
                         Text = "nyingimaina@gmail.com"

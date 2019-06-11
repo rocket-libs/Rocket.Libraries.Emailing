@@ -3,6 +3,7 @@
     using System.Collections.Generic;
     using System.Text;
     using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Models.Sending;
 
     public class FilePlaceholderProcessor
     {
