@@ -19,21 +19,35 @@ namespace Rocket.Libraries.Emailing.Services.Sending
     public class EmailBuilder
     {
         private List<string> _recepients = new List<string>();
+
         private string _subject;
+
         private string _body;
+
         private string _attachmentTemplate;
+
         private string _attachmentName;
+
         private Dictionary<string, string> _attachmentFiles = new Dictionary<string, string>();
 
         private EmailingSettings _emailingSettings;
+
         private IOptions<SparkPostOptions> _sparkPostOptions;
+
         private TemplateReader _templateReader;
+
         private PdfWriter _pdfWriter;
+
         private PlaceholderWriter _placeholderWriter;
+
         private List<TemplatePlaceholder> _placeholders = new List<TemplatePlaceholder>();
+
         private object _placeholdersObject;
+
         private List<string> _bodyTemplateLines;
+
         private SenderInformation _senderInformation;
+
         private List<FilePlaceholder> _filePlaceholders = new List<FilePlaceholder>();
 
         //private FilePlaceholderProcessor _filePlaceholderProcessor = new FilePlaceholderProcessor();
@@ -355,7 +369,8 @@ namespace Rocket.Libraries.Emailing.Services.Sending
                 var foundEnder = endPos >= 0;
                 if (foundEnder)
                 {
-                    var placeholder = content.Substring(startPos, endPos);
+                    var length = endPos - startPos + 2;
+                    var placeholder = content.Substring(startPos, length);
                     new DataValidator().EvaluateImmediate(() => true, $"Unresolved place holder '{placeholder}'");
                 }
             }
