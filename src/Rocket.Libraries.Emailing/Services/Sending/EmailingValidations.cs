@@ -1,9 +1,5 @@
-﻿namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services.Sending
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
     public static class EmailingValidations
     {
         public static bool IsInvalidEmail(string email)

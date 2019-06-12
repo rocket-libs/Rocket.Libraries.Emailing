@@ -1,18 +1,19 @@
-namespace Rocket.Libraries.Emailing.Services
+namespace Rocket.Libraries.Emailing.Services.Sending
 {
-    using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Extensions.Options;
-    using Rocket.Libraries.Emailing.Models;
-    using Rocket.Libraries.Emailing.Services.TemplatePreprocessing.LoopsPreprocessing;
-    using Rocket.Libraries.Validation.Services;
-    using SparkPostDotNet;
-    using SparkPostDotNet.Transmissions;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
+    using Rocket.Libraries.Emailing.Models;
+    using Rocket.Libraries.Emailing.Models.Sending;
+    using Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing;
+    using Rocket.Libraries.Validation.Services;
+    using SparkPostDotNet;
+    using SparkPostDotNet.Transmissions;
     using Options = Microsoft.Extensions.Options.Options;
 
     public class EmailBuilder
