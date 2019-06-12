@@ -1,4 +1,5 @@
-﻿using Rocket.Libraries.Emailing.Services;
+﻿using Rocket.Libraries.Emailing.Models.Sending;
+using Rocket.Libraries.Emailing.Services.Sending;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -15,24 +16,24 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                 .AddAttachmentAsTemplate("text.htm", "rescue")
                 .AddBodyAsTemplate("body.htm")
                 .AddPlaceholders(
-                    new List<Models.TemplatePlaceholder>
+                    new List<TemplatePlaceholder>
                     {
-                        new Models.TemplatePlaceholder
+                        new TemplatePlaceholder
                         {
                             Placeholder = "=text",
                             Text = "This is content of the attachment"
                         },
-                        new Models.TemplatePlaceholder
+                        new TemplatePlaceholder
                         {
                             Placeholder = "=a",
                             Text = "Tintin"
                         },
-                        new Models.TemplatePlaceholder
+                        new TemplatePlaceholder
                         {
                             Placeholder = "=b",
                             Text = "funny"
                         },
-                        new Models.TemplatePlaceholder
+                        new TemplatePlaceholder
                         {
                             Placeholder = "=c",
                             Text = "Test"

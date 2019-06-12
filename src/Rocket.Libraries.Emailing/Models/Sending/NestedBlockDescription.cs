@@ -1,9 +1,5 @@
-﻿namespace Rocket.Libraries.Emailing.Models
+﻿namespace Rocket.Libraries.Emailing.Models.Sending
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
     public class NestedBlockDescription
     {
         public TagPair ParentTag { get; set; }

@@ -1,9 +1,8 @@
 ﻿using Moq;
 using Rocket.Libraries.Emailing.Models;
-using Rocket.Libraries.Emailing.Services;
-using System;
+using Rocket.Libraries.Emailing.Models.Sending;
+using Rocket.Libraries.Emailing.Services.Sending;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace Rocket.Libraries.Emailing.Tests.Services

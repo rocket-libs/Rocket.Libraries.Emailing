@@ -1,4 +1,4 @@
-﻿namespace Rocket.Libraries.Emailing.Models
+﻿namespace Rocket.Libraries.Emailing.Models.Sending
 {
     using System.Collections.Generic;
 

@@ -1,10 +1,10 @@
-﻿namespace Rocket.Libraries.Emailing.Services
+﻿namespace Rocket.Libraries.Emailing.Services.Sending
 {
     using System;
     using System.IO;
     using DinkToPdf;
 
-    class PdfWriter
+    internal class PdfWriter
     {
         public byte[] GetPdfBytes(string htmlContent)
         {
@@ -25,7 +25,6 @@
                         HtmlContent = htmlContent,
                         WebSettings = { DefaultEncoding = "utf-8" },
                         FooterSettings = { FontSize = 9, Right = "Page [page] of [toPage]", Line = true, Spacing = 2.812 },
-
                     }
                 },
             };
@@ -33,7 +32,6 @@
             var converter = new BasicConverter(new PdfTools());
             return converter.Convert(doc);
         }
-
 
         private void LoadLib()
         {
