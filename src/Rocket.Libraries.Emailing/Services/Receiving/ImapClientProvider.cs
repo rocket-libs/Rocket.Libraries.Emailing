@@ -8,14 +8,32 @@
     using MailKit.Net.Imap;
     using Rocket.Libraries.Emailing.Models.Receiving;
 
-    public class ImapClientProvider
+    public class ImapClientProvider : IDisposable
     {
-        public virtual async Task<ImapClient> GetClientAsync(ImapSettings imapSettings)
+        private ProtocolLogger ProtocolLogger { get; set; }
+
+        public void Dispose()
         {
-            var client = new ImapClient();
+            ProtocolLogger?.Dispose();
+            ProtocolLogger = null;
+        }
+
+        public virtual async Task<ImapClient> GetClientAsync(ImapSettings imapSettings, string logFilename)
+        {
+            CreateProtocolLoggerIfPossible(logFilename);
+            var client = ProtocolLogger != null ? new ImapClient(ProtocolLogger) : new ImapClient();
             await client.ConnectAsync(imapSettings.Server, imapSettings.Port, imapSettings.UseSsl);
             await client.AuthenticateAsync(imapSettings.User, imapSettings.Password);
             return client;
+        }
+
+        private void CreateProtocolLoggerIfPossible(string logFilename)
+        {
+            var hasLogFilename = !string.IsNullOrEmpty(logFilename);
+            if (hasLogFilename)
+            {
+                ProtocolLogger = new ProtocolLogger(logFilename);
+            }
         }
     }
 }

@@ -16,37 +16,40 @@
 
         public ImapClientProvider ImapClientProvider { get; set; } = new ImapClientProvider();
 
-        public async Task<List<MimeMessage>> GetMailAsync(ImapSettings imapSettings, string terminalMessageId)
+        public async Task<List<MimeMessage>> GetMailAsync(ImapSettings imapSettings, string terminalMessageId, string logFilename = "")
         {
-            using (var client = await ImapClientProvider.GetClientAsync(imapSettings))
+            using (ImapClientProvider)
             {
-                try
+                using (var client = await ImapClientProvider.GetClientAsync(imapSettings, logFilename))
                 {
-                    new DataValidator()
-                        .AddFailureCondition(() => imapSettings == null, $"No imap settings receieved", true)
-                        .ThrowExceptionOnInvalidRules();
-                    InboxManager.SetClient(client);
-                    var result = new List<MimeMessage>();
-
-                    for (int i = InboxManager.GetMessageCount() - 1; i >= 0; i--)
+                    try
                     {
-                        var message = await InboxManager.GetMessageAsync(i);
-                        var shouldTerminateReading = message.MessageId.Equals(terminalMessageId, StringComparison.InvariantCultureIgnoreCase);
-                        if (shouldTerminateReading)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            result.Add(message);
-                        }
-                    }
+                        new DataValidator()
+                            .AddFailureCondition(() => imapSettings == null, $"No imap settings receieved", true)
+                            .ThrowExceptionOnInvalidRules();
+                        InboxManager.SetClient(client);
+                        var result = new List<MimeMessage>();
 
-                    return result;
-                }
-                finally
-                {
-                    client?.Disconnect(true);
+                        for (int i = InboxManager.GetMessageCount() - 1; i >= 0; i--)
+                        {
+                            var message = await InboxManager.GetMessageAsync(i);
+                            var shouldTerminateReading = message.MessageId.Equals(terminalMessageId, StringComparison.InvariantCultureIgnoreCase);
+                            if (shouldTerminateReading)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                result.Add(message);
+                            }
+                        }
+
+                        return result;
+                    }
+                    finally
+                    {
+                        client?.Disconnect(true);
+                    }
                 }
             }
         }
