@@ -13,8 +13,7 @@
         public virtual async Task<ImapClient> GetClientAsync(ImapSettings imapSettings)
         {
             var client = new ImapClient();
-            await client.ConnectAsync(imapSettings.Server, imapSettings.Port, true);
-
+            await client.ConnectAsync(imapSettings.Server, imapSettings.Port, imapSettings.UseSsl);
             await client.AuthenticateAsync(imapSettings.User, imapSettings.Password);
             return client;
         }

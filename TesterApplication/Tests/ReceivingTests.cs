@@ -13,9 +13,9 @@ namespace TesterApplication.Tests
         {
             var imapSettings = new ImapSettings
             {
-                Password = "Monday4th",
+                Password = "Wednesday12th",
                 Server = "imap-mail.outlook.com",
-                User = "nyingi@auto-kenya.com",
+                User = "enquiries@auto-kenya.com",
             };
 
             var mails = await new ImapReceiver().GetMailAsync(imapSettings, string.Empty);
