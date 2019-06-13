@@ -1,7 +1,7 @@
 ﻿using Moq;
-using Rocket.Libraries.Emailing.Models;
 using Rocket.Libraries.Emailing.Models.Sending;
 using Rocket.Libraries.Emailing.Services.Sending;
+using System;
 using System.Collections.Generic;
 using Xunit;
 
@@ -15,7 +15,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
             const string fileLine = "2";
             const string freeText = "1";
             var content = "{{head}}" + freeText;
-            var expectedResult = $"{fileLine}{freeText}";
+            var expectedResult = $"{fileLine}{Environment.NewLine}{freeText}";
 
             var fileplaceholders = new List<FilePlaceholder>
             {

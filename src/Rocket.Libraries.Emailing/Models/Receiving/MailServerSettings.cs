@@ -1,12 +1,6 @@
-﻿namespace Rocket.Libraries.Emailing.Models.Receiving
+﻿namespace Rocket.Libraries.Emailing.Models.Receiving.Imap
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.Threading;
-    using MailKit.Security;
-
-    public class ImapSettings
+    public class MailServerSettings
     {
         public string Server { get; set; }
 

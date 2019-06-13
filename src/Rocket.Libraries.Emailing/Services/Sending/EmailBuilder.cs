@@ -8,7 +8,6 @@ namespace Rocket.Libraries.Emailing.Services.Sending
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
-    using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Models.Sending;
     using Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing;
     using Rocket.Libraries.Validation.Services;

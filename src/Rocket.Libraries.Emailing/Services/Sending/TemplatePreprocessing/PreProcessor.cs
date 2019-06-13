@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Models.Sending;
 
     public abstract class PreProcessor
@@ -23,6 +22,7 @@
                 }
                 return _existingPlaceholders;
             }
+
             set => _existingPlaceholders = value;
         }
 
@@ -44,6 +44,7 @@
         public List<string> TemplateLines { get; }
 
         protected int CurrentNestingLevel { get; }
+
         protected string Key { get; }
 
         public abstract PreprocessingResult PreProcess();

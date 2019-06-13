@@ -1,19 +1,16 @@
 ﻿using MimeKit;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Xunit;
 using System.Linq;
-using Rocket.Libraries.Emailing.Services.Receiving;
 using System.Threading.Tasks;
 using Moq;
-using Rocket.Libraries.Emailing.Models.Receiving;
-using MailKit.Net.Imap;
-using MailKit;
+using Rocket.Libraries.Emailing.Services.Receiving.MailboxAdapting;
+using Rocket.Libraries.Emailing.Services.Receiving;
 
 namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
 {
-    public class ImapReceiverTests
+    public class MailFetcherTests
     {
         [Fact]
         public async Task TerminatesOnCorrectId()
@@ -39,10 +36,9 @@ namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
             }).Select(a => new MimeMessage { MessageId = a.MessageId.ToLower() })
             .ToList();
 
-            var mockInboxManager = new Mock<InboxManager>();
-            var mockImapClientProvider = new Mock<ImapClientProvider>();
+            var mockMailboxWrapper = new Mock<MailBoxWrapper>();
 
-            Action<int> setupMessageReader = index => mockInboxManager
+            Action<int> setupMessageReader = index => mockMailboxWrapper
                 .Setup(a => a.GetMessageAsync(It.Is<int>(messageIndex => messageIndex == index)))
                 .ReturnsAsync(messages[index]);
 
@@ -50,16 +46,12 @@ namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
             setupMessageReader(1);
             setupMessageReader(2);
 
-            mockInboxManager.Setup(a => a.GetMessageCount())
+            mockMailboxWrapper.Setup(a => a.MessageCount)
                 .Returns(messages.Count);
 
-            var imapReceiver = new ImapReceiver
-            {
-                InboxManager = mockInboxManager.Object,
-                ImapClientProvider = mockImapClientProvider.Object
-            };
+            var mailBoxAdapter = new MailBoxAdapter(mockMailboxWrapper.Object);
 
-            var result = await imapReceiver.GetMailAsync(null, terminalId);
+            var result = await new MailFetcher().GetMessagesAsync(mailBoxAdapter, terminalId);
 
             Assert.Single(result);
             Assert.Collection(result, a => a.MessageId.Equals(terminalId, StringComparison.InvariantCultureIgnoreCase));
@@ -89,10 +81,9 @@ namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
             }).Select(a => new MimeMessage { MessageId = a.MessageId.ToLower() })
             .ToList();
 
-            var mockInboxManager = new Mock<InboxManager>();
-            var mockImapClientProvider = new Mock<ImapClientProvider>();
+            var mockMailboxWrapper = new Mock<MailBoxWrapper>();
 
-            Action<int> setupMessageReader = index => mockInboxManager
+            Action<int> setupMessageReader = index => mockMailboxWrapper
                 .Setup(a => a.GetMessageAsync(It.Is<int>(messageIndex => messageIndex == index)))
                 .ReturnsAsync(messages[index]);
 
@@ -100,16 +91,12 @@ namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
             setupMessageReader(1);
             setupMessageReader(2);
 
-            mockInboxManager.Setup(a => a.GetMessageCount())
+            mockMailboxWrapper.Setup(a => a.MessageCount)
                 .Returns(messages.Count);
 
-            var imapReceiver = new ImapReceiver
-            {
-                InboxManager = mockInboxManager.Object,
-                ImapClientProvider = mockImapClientProvider.Object
-            };
+            var mailBoxAdapter = new MailBoxAdapter(mockMailboxWrapper.Object);
 
-            var result = await imapReceiver.GetMailAsync(null, string.Empty);
+            var result = await new MailFetcher().GetMessagesAsync(mailBoxAdapter, string.Empty);
 
             Assert.Equal(3, result.Count);
         }
@@ -138,10 +125,9 @@ namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
             }).Select(a => new MimeMessage { MessageId = a.MessageId.ToLower() })
             .ToList();
 
-            var mockInboxManager = new Mock<InboxManager>();
-            var mockImapClientProvider = new Mock<ImapClientProvider>();
+            var mockMailboxWrapper = new Mock<MailBoxWrapper>();
 
-            Action<int> setupMessageReader = index => mockInboxManager
+            Action<int> setupMessageReader = index => mockMailboxWrapper
                 .Setup(a => a.GetMessageAsync(It.Is<int>(messageIndex => messageIndex == index)))
                 .ReturnsAsync(messages[index]);
 
@@ -149,16 +135,12 @@ namespace Rocket.Libraries.Emailing.Tests.Services.Receiver
             setupMessageReader(1);
             setupMessageReader(2);
 
-            mockInboxManager.Setup(a => a.GetMessageCount())
+            mockMailboxWrapper.Setup(a => a.MessageCount)
                 .Returns(messages.Count);
 
-            var imapReceiver = new ImapReceiver
-            {
-                InboxManager = mockInboxManager.Object,
-                ImapClientProvider = mockImapClientProvider.Object
-            };
+            var mailBoxAdapter = new MailBoxAdapter(mockMailboxWrapper.Object);
 
-            var result = await imapReceiver.GetMailAsync(null, null);
+            var result = await new MailFetcher().GetMessagesAsync(mailBoxAdapter, null);
 
             Assert.Equal(3, result.Count);
         }

@@ -1,8 +1,7 @@
-﻿using Rocket.Libraries.Emailing.Models.Receiving;
-using Rocket.Libraries.Emailing.Services.Receiving;
+﻿using Rocket.Libraries.Emailing.Models.Receiving.Imap;
+using Rocket.Libraries.Emailing.Services.Receiving.Imap;
+using Rocket.Libraries.Emailing.Services.Receiving.Pop3;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace TesterApplication.Tests
@@ -11,17 +10,19 @@ namespace TesterApplication.Tests
     {
         public async Task FetchingEmailsWorksAsync()
         {
-            var imapSettings = new ImapSettings
+            var mailServerSettings = new MailServerSettings
             {
-                Password = "Monday4th",
-                Server = "imap-mail.outlook.com",
-                User = "nyingi@auto-kenya.com",
-                Port = 993,
+                Password = "Wednesday12th",
+                Server = "pop-mail.outlook.com",
+                User = "enquiries@auto-kenya.com",
+                Port = 995,
                 UseSsl = true
             };
 
-            var mails = await new ImapReceiver().GetMailAsync(imapSettings, string.Empty);
-            Console.WriteLine($"Found {mails.Count} mails in the inbox");
+            var mailCount = await new Pop3Receiver()
+                .SetMailServerSettings(mailServerSettings)
+                .GetCountAsync();
+            Console.WriteLine($"Found {mailCount} mails in the inbox");
         }
     }
 }

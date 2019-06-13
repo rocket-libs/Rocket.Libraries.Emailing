@@ -1,17 +1,17 @@
 ﻿namespace Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing
 {
-    using Rocket.Libraries.Emailing.Models;
-    using Rocket.Libraries.Emailing.Models.Sending;
-    using Rocket.Libraries.Validation.Services;
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using Rocket.Libraries.Emailing.Models.Sending;
+    using Rocket.Libraries.Validation.Services;
 
     public class LoopBlocksPreprocessor : PreProcessor
     {
         private const string BlockTagPrefix = "<lb-";
+
         private List<NestedBlockDescription> _nestedBlockDescriptions = new List<NestedBlockDescription>();
 
         public LoopBlocksPreprocessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)
