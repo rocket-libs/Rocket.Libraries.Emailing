@@ -21,8 +21,8 @@ namespace TesterApplication
             try
             {
                 new ReceivingTests().FetchingEmailsWorksAsync().GetAwaiter().GetResult();
-                new SubstituteAgreedTests().SendAsync().GetAwaiter().GetResult();
-                new LegacySupport().PureBCCingBehaviourStillWorks().GetAwaiter().GetResult();
+                /*new SubstituteAgreedTests().SendAsync().GetAwaiter().GetResult();
+                new LegacySupport().PureBCCingBehaviourStillWorks().GetAwaiter().GetResult();*/
                 Console.WriteLine("Succeeded");
             }
             catch (Exception e)

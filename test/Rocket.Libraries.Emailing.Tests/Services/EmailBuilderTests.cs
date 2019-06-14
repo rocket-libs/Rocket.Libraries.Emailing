@@ -9,7 +9,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
 {
     public class EmailBuilderTests
     {
-        [Fact]
+        [Fact(Skip = "No longer in possession of domain below. Anyhow, this is an integration test.")]
         public async Task KitchenSinkTestAsync()
         {
             await new EmailBuilder()
@@ -40,6 +40,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
                         }
                     }
                 )
+                .AddSender("sender@example.com", "Sender Name")
                 .AddRecepient("nyingimaina@gmail.com")
                 .AddSubject("Kitchen Sink =c")
                 .BuildAsync();
@@ -50,9 +51,20 @@ namespace Rocket.Libraries.Emailing.Tests.Services
         {
             var emailBuilder = new EmailBuilder()
                 .AddBodyAsText("Body")
+                .AddSender("sender@example.com", "Example Sender")
                 .AddSubject("Subject");
             var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
-            Assert.Contains("Recipient", ex.Message);
+            Assert.Contains("Your email message has no recepients", ex.Message);
+        }
+
+        [Fact]
+        public async Task VerifyMissingSenderIsReported()
+        {
+            var emailBuilder = new EmailBuilder()
+                .AddBodyAsText("Body")
+                .AddSubject("Subject");
+            var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
+            Assert.Contains("Sender Email", ex.Message);
         }
 
         [Fact]
@@ -75,7 +87,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
             Assert.Contains("Subject", ex.Message);
         }
 
-        [Fact]
+        [Fact(Skip = "No longer in possession of domain below. Anyhow, this is an integration test.")]
         public async Task TestCCsAreSentCorrectly()
         {
             await new EmailBuilder()

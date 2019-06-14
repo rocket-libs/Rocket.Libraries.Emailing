@@ -1,5 +1,4 @@
-﻿using Rocket.Libraries.Emailing.Models;
-using Rocket.Libraries.Emailing.Models.Sending;
+﻿using Rocket.Libraries.Emailing.Models.Sending;
 using Rocket.Libraries.Emailing.Services.Sending;
 using System;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
 {
     public class EmailerTests
     {
-        [Fact]
+        [Fact(Skip = "No longer in possession of domain below. Anyhow, this is an integration test.")]
         public async Task EmailGetsSent()
         {
             Environment.SetEnvironmentVariable("SPARKPOST_APIKEY", "fa0291b031781bd5dff87f1f4c6ebade277af621");

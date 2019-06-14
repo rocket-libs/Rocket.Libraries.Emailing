@@ -1,13 +1,14 @@
 ﻿namespace Rocket.Libraries.Emailing.Services.Sending.TemplatePreprocessing.LoopsPreprocessing
 {
     using System.Collections.Generic;
-    using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Models.Sending;
 
     public class LoopsPreprocessor : PreProcessor
     {
         public const string ObjectNestingStartRawTag = "nesting-start";
+
         public const string ObjectNestingStopRawTag = "nesting-stop";
+
         public const string ToStringPlaceholder = "%s";
 
         public LoopsPreprocessor(object valuesObject, List<string> templateLines, int nestingLevel, string key, List<TemplatePlaceholder> existingPlaceholders)

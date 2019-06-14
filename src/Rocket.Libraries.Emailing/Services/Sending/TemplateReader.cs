@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Models.Sending;
 
     public class TemplateReader

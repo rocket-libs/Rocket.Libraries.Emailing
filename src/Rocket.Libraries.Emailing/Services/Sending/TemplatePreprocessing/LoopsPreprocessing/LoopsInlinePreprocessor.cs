@@ -5,7 +5,6 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using Rocket.Libraries.Emailing.Models;
     using Rocket.Libraries.Emailing.Models.Sending;
 
     public class LoopsInlinePreprocessor : PreProcessor
@@ -28,7 +27,9 @@
         private object CurrentValuesObject => _nestingStack?.First()?.Obj;
 
         private const string InLineTagPrefix = "<lv-";
+
         private PreprocessingResult _preprocessingResult = new PreprocessingResult();
+
         private Stack<NestingInformation> _nestingStack = new Stack<NestingInformation>();
 
         private TagPair nestingStartTags = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStartRawTag);
