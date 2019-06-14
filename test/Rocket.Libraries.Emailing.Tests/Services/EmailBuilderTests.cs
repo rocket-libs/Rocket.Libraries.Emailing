@@ -71,7 +71,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
         public async Task VerifyMissingBodyIsReported()
         {
             var emailBuilder = new EmailBuilder()
-                .AddRecepient("Body")
+                .AddRecepient("recepient@example.com")
                 .AddSubject("Subject");
             var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
             Assert.Contains("Body", ex.Message);
@@ -82,7 +82,7 @@ namespace Rocket.Libraries.Emailing.Tests.Services
         {
             var emailBuilder = new EmailBuilder()
                 .AddBodyAsText("Body")
-                .AddRecepient("Subject");
+                .AddRecepient("recepient@example.com");
             var ex = await Assert.ThrowsAsync<Exception>(async () => await emailBuilder.BuildAsync());
             Assert.Contains("Subject", ex.Message);
         }
