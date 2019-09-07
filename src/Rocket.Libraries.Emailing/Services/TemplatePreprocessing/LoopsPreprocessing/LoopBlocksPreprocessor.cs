@@ -50,7 +50,7 @@
             if (startOfBlockFound)
             {
                 var tagPair = GetFirstTagPair(line, BlockTagPrefix);
-                new DataValidator().EvaluateImmediate(() => tagPair == null, $"Contrary to expectation, could not find a block opening tag on line '{line}'");
+                new DataValidator().EvaluateImmediate(tagPair == null, $"Contrary to expectation, could not find a block opening tag on line '{line}'");
                 var isValidForCurrentLevel = IsCachedTag(tagPair) == false;
                 return isValidForCurrentLevel;
             }
@@ -154,7 +154,7 @@
                     .PreProcess();
                 var linesAfterRecursion = preprocessingResult.TemplateLines.Count;
                 var totalNewLinesFromRecursion = linesAfterRecursion - linesBeforeRecursion;
-                new DataValidator().EvaluateImmediate(() => totalNewLinesFromRecursion < 0, "Decrement of lines after recursion for nested blocks in templates has not been tested.");
+                new DataValidator().EvaluateImmediate(totalNewLinesFromRecursion < 0, "Decrement of lines after recursion for nested blocks in templates has not been tested.");
                 preprocessingResult.TotalNewLinesAfterHandlingNesting = totalNewLinesFromRecursion;
             }
 

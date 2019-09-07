@@ -195,7 +195,7 @@ namespace Rocket.Libraries.Emailing.Services
 
         private void FailOnInvalidEmail(string emailAddress)
         {
-            new DataValidator().EvaluateImmediate(() => EmailingValidations.IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
+            new DataValidator().EvaluateImmediate(EmailingValidations.IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
         }
 
         private void PreprocessForDevelopmentIfNeeded()
@@ -307,7 +307,7 @@ namespace Rocket.Libraries.Emailing.Services
         {
             foreach (var item in _attachmentFiles)
             {
-                new DataValidator().EvaluateImmediate(() => !File.Exists(item.Value), $"Could not find attachment file at '{item.Value}'");
+                new DataValidator().EvaluateImmediate(!File.Exists(item.Value), $"Could not find attachment file at '{item.Value}'");
                 var attachmentBytes = File.ReadAllBytes(item.Value);
                 AppendAttachment(transmission, attachmentBytes, item.Key);
             }

@@ -59,7 +59,7 @@
                 _preprocessingResult.TemplateLines = TemplateLines;
                 return _preprocessingResult;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 throw;
             }

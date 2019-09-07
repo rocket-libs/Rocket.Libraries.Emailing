@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
-    <Version>2.3.0</Version>
+    <Version>3.0.0-beta01s</Version>
     <CodeAnalysisRuleSet>../../rocket.rules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
@@ -20,7 +20,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.1.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.1.1" />
-    <PackageReference Include="Rocket.Libraries.Validation" Version="1.0.0-beta02" />
+    <PackageReference Include="Rocket.Libraries.Validation" Version="2.0.0-beta05" />
     <PackageReference Include="SparkPostDotNet" Version="0.3.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta009">
       <PrivateAssets>all</PrivateAssets>

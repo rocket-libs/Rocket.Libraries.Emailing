@@ -27,7 +27,7 @@ namespace Rocket.Libraries.Emailing.Services
             return builder.Build();
         }
 
-        [Obsolete("Please use email builder for more fine-tuning and clearer process.")]
+        /*[Obsolete("Please use email builder for more fine-tuning and clearer process.")]
         public async Task<EmailSendingResult> SendEmailAsync(string recepient, string subject, string body, string template, List<TemplatePlaceholder> placeholders, string attachmentName)
         {
             if (_configuration == null)
@@ -45,6 +45,6 @@ namespace Rocket.Libraries.Emailing.Services
                 .AddRecepient(recepient)
                 .AddSubject(subject)
                 .BuildAsync();
-        }
+        } */
     }
 }
