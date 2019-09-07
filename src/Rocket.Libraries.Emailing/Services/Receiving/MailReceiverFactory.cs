@@ -23,7 +23,7 @@
             }
             else
             {
-                new DataValidator().EvaluateImmediate(() => true, $"Unsupported client type '{typeof(TClient).Name}'. Cannot create a receiver");
+                new DataValidator().EvaluateImmediate(true, $"Unsupported client type '{typeof(TClient).Name}'. Cannot create a receiver");
                 return null;
             }
         }

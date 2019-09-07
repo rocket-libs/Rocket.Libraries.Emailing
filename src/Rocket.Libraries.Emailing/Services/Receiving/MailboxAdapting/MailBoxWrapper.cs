@@ -37,8 +37,8 @@
         private void FailIfNotSetupCorrectly()
         {
             new DataValidator()
-                    .AddFailureCondition(() => _mailBoxAdapter.UseConfigurator().FuncIndexedMessageReader == null, $"Function to read messages is not set", false)
-                    .AddFailureCondition(() => _mailBoxAdapter.UseConfigurator().FuncCounter == null, $"Function to get count of messages is not set", false)
+                    .AddFailureCondition( _mailBoxAdapter.UseConfigurator().FuncIndexedMessageReader == null, $"Function to read messages is not set", false)
+                    .AddFailureCondition( _mailBoxAdapter.UseConfigurator().FuncCounter == null, $"Function to get count of messages is not set", false)
                     .ThrowExceptionOnInvalidRules();
         }
     }

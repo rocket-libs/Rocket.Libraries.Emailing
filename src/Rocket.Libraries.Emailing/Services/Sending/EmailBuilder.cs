@@ -370,7 +370,7 @@ namespace Rocket.Libraries.Emailing.Services.Sending
                 {
                     var length = endPos - startPos + 2;
                     var placeholder = content.Substring(startPos, length);
-                    new DataValidator().EvaluateImmediate(() => true, $"Unresolved place holder '{placeholder}'");
+                    new DataValidator().EvaluateImmediate(true, $"Unresolved place holder '{placeholder}'");
                 }
             }
         }
