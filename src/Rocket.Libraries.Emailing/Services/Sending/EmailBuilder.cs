@@ -303,7 +303,10 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
         private void FailOnInvalidEmail(string emailAddress)
         {
-            new DataValidator().EvaluateImmediate(EmailingValidations.IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
+            using (var validator = new DataValidator())
+            {
+                validator.EvaluateImmediate(EmailingValidations.IsInvalidEmail(emailAddress), $"Email address '{emailAddress}' does not appear to be a valid email address. Please correct");
+            }
         }
 
         private void PreprocessForDevelopmentIfNeeded()
@@ -370,7 +373,10 @@ namespace Rocket.Libraries.Emailing.Services.Sending
                 {
                     var length = endPos - startPos + 2;
                     var placeholder = content.Substring(startPos, length);
-                    new DataValidator().EvaluateImmediate(true, $"Unresolved place holder '{placeholder}'");
+                    using (var validator = new DataValidator())
+                    {
+                        validator.EvaluateImmediate(true, $"Unresolved place holder '{placeholder}'");
+                    }
                 }
             }
         }
@@ -493,7 +499,10 @@ namespace Rocket.Libraries.Emailing.Services.Sending
         {
             foreach (var item in _attachmentFiles)
             {
-                new DataValidator().EvaluateImmediate(!File.Exists(item.Value), $"Could not find attachment file at '{item.Value}'");
+                using (var validator = new DataValidator())
+                {
+                    validator.EvaluateImmediate(!File.Exists(item.Value), $"Could not find attachment file at '{item.Value}'");
+                }
                 var attachmentBytes = File.ReadAllBytes(item.Value);
                 AppendAttachment(transmission, attachmentBytes, item.Key);
             }

@@ -5,7 +5,6 @@
     using System.Threading.Tasks;
     using MailKit.Net.Pop3;
     using MimeKit;
-    using Rocket.Libraries.Emailing.Models.Receiving.Imap;
     using Rocket.Libraries.Emailing.Services.Receiving.Imap;
     using Rocket.Libraries.Emailing.Services.Receiving.MailboxAdapting;
 

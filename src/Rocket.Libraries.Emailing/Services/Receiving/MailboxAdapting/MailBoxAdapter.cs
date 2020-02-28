@@ -1,11 +1,6 @@
 ﻿namespace Rocket.Libraries.Emailing.Services.Receiving.MailboxAdapting
 {
     using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.Threading.Tasks;
-    using MimeKit;
-    using Rocket.Libraries.Validation.Services;
 
     public class MailBoxAdapter : IDisposable
     {
