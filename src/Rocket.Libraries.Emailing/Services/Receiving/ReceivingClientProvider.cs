@@ -76,13 +76,16 @@
 
         private void FailIfInvalid()
         {
-            new DataValidator()
-                .AddFailureCondition(() => _mailServerSettings == null, "Mail server settings are not available. Cannot continue", false)
-                .AddFailureCondition(() => _funcLoggingConstructor == null, "Logging constructor is not specified", false)
-                .AddFailureCondition(() => _funcLoglessConstructor == null, "Logless constructor is not specified", false)
-                .AddFailureCondition(() => _funcConnect == null, "Connector function is not specified. Cannot connect to mail server", false)
-                .AddFailureCondition(() => _funcAuthenticator == null, "Authenticator function is not specified. Cannot authenticate against mail server", false)
-                .ThrowExceptionOnInvalidRules();
+            using (var validator = new DataValidator())
+            {
+                validator
+                    .AddFailureCondition(_mailServerSettings == null, "Mail server settings are not available. Cannot continue", false)
+                    .AddFailureCondition(_funcLoggingConstructor == null, "Logging constructor is not specified", false)
+                    .AddFailureCondition(_funcLoglessConstructor == null, "Logless constructor is not specified", false)
+                    .AddFailureCondition(_funcConnect == null, "Connector function is not specified. Cannot connect to mail server", false)
+                    .AddFailureCondition(_funcAuthenticator == null, "Authenticator function is not specified. Cannot authenticate against mail server", false)
+                    .ThrowExceptionOnInvalidRules();
+            }
         }
 
         private void CreateProtocolLoggerIfPossible()

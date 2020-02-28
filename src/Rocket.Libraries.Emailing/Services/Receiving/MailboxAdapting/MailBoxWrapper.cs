@@ -1,8 +1,5 @@
 ﻿namespace Rocket.Libraries.Emailing.Services.Receiving.MailboxAdapting
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
     using System.Threading.Tasks;
     using MimeKit;
     using Rocket.Libraries.Validation.Services;
@@ -36,10 +33,13 @@
 
         private void FailIfNotSetupCorrectly()
         {
-            new DataValidator()
-                    .AddFailureCondition(() => _mailBoxAdapter.UseConfigurator().FuncIndexedMessageReader == null, $"Function to read messages is not set", false)
-                    .AddFailureCondition(() => _mailBoxAdapter.UseConfigurator().FuncCounter == null, $"Function to get count of messages is not set", false)
+            using (var validator = new DataValidator())
+            {
+                validator
+                    .AddFailureCondition(_mailBoxAdapter.UseConfigurator().FuncIndexedMessageReader == null, $"Function to read messages is not set", false)
+                    .AddFailureCondition(_mailBoxAdapter.UseConfigurator().FuncCounter == null, $"Function to get count of messages is not set", false)
                     .ThrowExceptionOnInvalidRules();
+            }
         }
     }
 }

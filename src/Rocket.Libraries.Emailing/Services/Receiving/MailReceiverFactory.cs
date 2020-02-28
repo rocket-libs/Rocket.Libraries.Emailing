@@ -1,8 +1,5 @@
 ﻿namespace Rocket.Libraries.Emailing.Services.Receiving
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
     using MailKit.Net.Imap;
     using MailKit.Net.Pop3;
     using Rocket.Libraries.Emailing.Services.Receiving.Imap;
@@ -23,7 +20,11 @@
             }
             else
             {
-                new DataValidator().EvaluateImmediate(() => true, $"Unsupported client type '{typeof(TClient).Name}'. Cannot create a receiver");
+                using (var validator = new DataValidator())
+                {
+                    validator.EvaluateImmediate(true, $"Unsupported client type '{typeof(TClient).Name}'. Cannot create a receiver");
+                }
+
                 return null;
             }
         }
