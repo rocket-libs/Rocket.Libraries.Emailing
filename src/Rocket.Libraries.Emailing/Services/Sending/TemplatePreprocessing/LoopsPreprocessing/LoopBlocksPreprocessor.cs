@@ -5,6 +5,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using Newtonsoft.Json;
     using Rocket.Libraries.Emailing.Models.Sending;
     using Rocket.Libraries.Validation.Services;
 
@@ -46,97 +47,80 @@
             return results;
         }
 
-        private void GrowResult(PreprocessingResult result, PreprocessingResult injectionResult)
+        private void CacheNestedBlockIfRequired(string currentLine, TagPair blockTag)
         {
-            var hasInjectionResult = injectionResult != null;
-            if (hasInjectionResult)
+            var beginningOfNestedBlock = LineContainsStartOfBlock(currentLine);
+            if (beginningOfNestedBlock)
             {
-                var hasInjectionTemplateLines = injectionResult.TemplateLines != null && injectionResult.TemplateLines.Count > 0;
-                var hasInjectionPlaceHolders = injectionResult.Placeholders != null && injectionResult.Placeholders.Count > 0;
-                if (hasInjectionTemplateLines)
+                var nestedTag = GetFirstTagPair(currentLine, BlockTagPrefix);
+                var nestedBlockDescription = new NestedBlockDescription
                 {
-                    result.TemplateLines = injectionResult.TemplateLines;
-                }
-
-                if (hasInjectionPlaceHolders)
-                {
-                    result.Placeholders.AddRange(injectionResult.Placeholders);
-                }
+                    ChildTag = nestedTag,
+                    ParentTag = blockTag,
+                };
+                _nestedBlockDescriptions.Add(nestedBlockDescription);
             }
         }
 
-        private bool LineContainsStartOfBlock(string line)
+        private void CleanClosingTagOffLastLine(string closingTag, int index)
         {
-            var indexOfStarting = line.IndexOf(BlockTagPrefix, StringComparison.InvariantCulture);
-            var startOfBlockFound = indexOfStarting >= 0;
-            if (startOfBlockFound)
+            var indexOfClosingTag = TemplateLines[index].IndexOf(closingTag);
+            var subStringStart = indexOfClosingTag + closingTag.Length + 1;
+            var hasAdditionalContentAfterClosingTag = TemplateLines[index].Length > subStringStart;
+            if (hasAdditionalContentAfterClosingTag)
             {
-                var tagPair = GetFirstTagPair(line, BlockTagPrefix);
-                using (var validator = new DataValidator())
-                {
-                    validator.EvaluateImmediate(tagPair == null, $"Contrary to expectation, could not find a block opening tag on line '{line}'");
-                }
-
-                var isValidForCurrentLevel = IsCachedTag(tagPair) == false;
-                return isValidForCurrentLevel;
+                TemplateLines[index] = TemplateLines[index].Substring(subStringStart);
             }
             else
             {
-                return false;
+                TemplateLines.RemoveAt(index);
             }
         }
 
-        private bool IsCachedTag(TagPair tagPair)
+        private string GetAssociatedPropertyName(string rawTag)
         {
-            var cachedInstance = _nestedBlockDescriptions.FirstOrDefault(a => a.ChildTag.RawTag.Equals(tagPair.RawTag, StringComparison.InvariantCulture));
-            return cachedInstance != null;
+            return rawTag.Substring(BlockTagPrefix.Length - 1);
         }
 
-        private PreprocessingResult InjectBlocks(int index)
+        private List<string> GetBlockContent(TagPair blockTags, int index)
         {
-            var blockTags = GetFirstTagPair(TemplateLines[index], BlockTagPrefix);
-            if (blockTags == null)
+            var blockContent = new List<string>();
+            var openingTagStart = TemplateLines[index].IndexOf(blockTags.OpeningTag, StringComparison.InvariantCulture);
+            var contentStart = openingTagStart + blockTags.OpeningTag.Length;
+            var hasAdditionalContentOnLine = TemplateLines[index].Length > contentStart;
+            if (hasAdditionalContentOnLine)
             {
-                return null;
+                var targetContent = TemplateLines[index].Substring(contentStart);
+                CacheNestedBlockIfRequired(targetContent, blockTags);
+                blockContent.Add(targetContent);
             }
-            else
-            {
-                var blockContent = GetBlockContent(blockTags, index);
 
-                return InsertCopiesOfBlock(blockContent, blockTags.RawTag, index);
+            TemplateLines.RemoveAt(index);
+            while (LineDoesNotHaveClosingTag(index, blockTags.ClosingTag) && NotAtLastLine(index))
+            {
+                var currentLine = TemplateLines[index];
+                CacheNestedBlockIfRequired(currentLine, blockTags);
+                blockContent.Add(currentLine);
+                TemplateLines.RemoveAt(index);
             }
+
+            blockContent.Add(GetBlockContentFromLastLine(blockTags, index));
+            CleanClosingTagOffLastLine(blockTags.ClosingTag, index);
+            return blockContent;
         }
 
-        private PreprocessingResult InsertCopiesOfBlock(List<string> blockContent, string rawTag, int index)
+        private string GetBlockContentFromLastLine(TagPair blockTags, int index)
         {
-            if (ValuesObject == null)
-            {
-                return null;
-            }
-            else
-            {
-                var propertyName = GetAssociatedPropertyName(rawTag);
-                var targetProperty = GetProperty(BlockTagPrefix, propertyName);
-                return InjectCopiesOfBlock(blockContent, targetProperty, index);
-            }
-        }
+            var indexOfClosingTag = TemplateLines[index].IndexOf(blockTags.ClosingTag, StringComparison.InvariantCulture);
 
-        private PreprocessingResult InjectCopiesOfBlock(List<string> blockContent, PropertyInfo targetProperty, int index)
-        {
-            var copies = GetPropertyElementLength(targetProperty);
-            if (copies == 0)
+            if (indexOfClosingTag < 0)
             {
-                return null;
+                throw new Exception($"Tag {blockTags.OpeningTag} is not closed");
             }
-            else
-            {
-                return GetProcessingResult(blockContent, targetProperty, index);
-            }
-        }
 
-        private bool LineContainsBlockTagClose(string line, TagPair tagPair)
-        {
-            return line.Contains(tagPair.ClosingTag, StringComparison.InvariantCulture);
+            var line = TemplateLines[index].Substring(0, indexOfClosingTag);
+            CacheNestedBlockIfRequired(line, blockTags);
+            return line;
         }
 
         private TagPair GetCurrentNestedTagIfExists(TagPair currentNestedTagPair, string line)
@@ -157,106 +141,6 @@
                 {
                     return currentNestedTagPair;
                 }
-            }
-        }
-
-        private void InjectExistingPlaceholdersIfAvailable(PreprocessingResult preprocessingResult)
-        {
-            if (ExistingPlaceholders != null && ExistingPlaceholders.Count > 0)
-            {
-                preprocessingResult.Placeholders.AddRange(ExistingPlaceholders);
-            }
-        }
-
-        private PreprocessingResult HandleNestingIfRequired(bool nestingFound, PreprocessingResult preprocessingResult, object currentObject)
-        {
-            preprocessingResult.TotalNewLinesAfterHandlingNesting = 0;
-            if (nestingFound)
-            {
-                var linesBeforeRecursion = preprocessingResult.TemplateLines.Count;
-                var nestingLevel = CurrentNestingLevel + 1;
-                var key = Guid.NewGuid().ToString();
-                preprocessingResult = new LoopsPreprocessor(currentObject, preprocessingResult.TemplateLines, CurrentNestingLevel + 1, key, preprocessingResult.Placeholders)
-                    .PreProcess();
-                var linesAfterRecursion = preprocessingResult.TemplateLines.Count;
-                var totalNewLinesFromRecursion = linesAfterRecursion - linesBeforeRecursion;
-                using (var validator = new DataValidator())
-                {
-                    validator.EvaluateImmediate(totalNewLinesFromRecursion < 0, "Decrement of lines after recursion for nested blocks in templates has not been tested.");
-                }
-
-                preprocessingResult.TotalNewLinesAfterHandlingNesting = totalNewLinesFromRecursion;
-            }
-
-            return preprocessingResult;
-        }
-
-        private PreprocessingResult GetProcessingResult(List<string> blockContent, PropertyInfo targetProperty, int index)
-        {
-            var preprocessingResult = new PreprocessingResult
-            {
-                TemplateLines = TemplateLines,
-                Placeholders = new List<TemplatePlaceholder>(),
-            };
-            InjectExistingPlaceholdersIfAvailable(preprocessingResult);
-            var nestingFound = false;
-            var innerPlaceholders = GetPlaceholdersInBlockContent(blockContent);
-            var list = targetProperty.GetValue(ValuesObject) as ICollection;
-            var listEnumerator = list.GetEnumerator();
-            var listItemIndex = 0;
-            var nestingStartTag = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStartRawTag);
-            var nestingStopTag = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStopRawTag);
-
-            while (listEnumerator.MoveNext())
-            {
-                var newLines = new List<string>
-                {
-                    $"{nestingStartTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStartTag.ClosingTag}",
-                };
-
-                var currentNestedTagPair = default(TagPair);
-                for (var i = 0; i < blockContent.Count; i++)
-                {
-                    currentNestedTagPair = GetCurrentNestedTagIfExists(currentNestedTagPair, blockContent[i]);
-                    var isInNestedBlock = currentNestedTagPair != null;
-                    nestingFound = nestingFound || isInNestedBlock;
-                    var processedLine = GetLineWithInnerPlaceHoldersReplaced(blockContent[i], innerPlaceholders, i, targetProperty.Name, listEnumerator.Current, preprocessingResult, listItemIndex, isInNestedBlock);
-                    newLines.Add(processedLine);
-                }
-
-                newLines.Add($"{nestingStopTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStopTag.ClosingTag}");
-                preprocessingResult.TemplateLines.InsertRange(index, newLines);
-
-                preprocessingResult = HandleNestingIfRequired(nestingFound, preprocessingResult, listEnumerator.Current);
-
-                index += newLines.Count + preprocessingResult.TotalNewLinesAfterHandlingNesting;
-                listItemIndex++;
-            }
-
-            return preprocessingResult;
-        }
-
-        private string GetReplacementPlaceholder(string propertyName, string placeholderName, bool isToStringPlaceholder, int listItemIndex, bool isInNestedBlock)
-        {
-            if (isToStringPlaceholder || isInNestedBlock)
-            {
-                return "{{" + GetPlaceholderPrefixIfRequired() + placeholderName + "}}";
-            }
-            else
-            {
-                return $"{{{{{propertyName}{GetPlaceholderPrefixIfRequired()}-{listItemIndex}-{placeholderName}}}}}";
-            }
-        }
-
-        private string GetPlaceholderPrefixIfRequired()
-        {
-            if (string.IsNullOrEmpty(Key))
-            {
-                return string.Empty;
-            }
-            else
-            {
-                return $"{Key}-";
             }
         }
 
@@ -318,6 +202,18 @@
             }
         }
 
+        private string GetPlaceholderPrefixIfRequired()
+        {
+            if (string.IsNullOrEmpty(Key))
+            {
+                return string.Empty;
+            }
+            else
+            {
+                return $"{Key}-";
+            }
+        }
+
         private Dictionary<int, List<string>> GetPlaceholdersInBlockContent(List<string> blockContent)
         {
             var finalResult = new Dictionary<int, List<string>>();
@@ -347,90 +243,57 @@
             return finalResult;
         }
 
-        private void CacheNestedBlockIfRequired(string currentLine, TagPair blockTag)
+        private PreprocessingResult GetProcessingResult(List<string> blockContent, PropertyInfo targetProperty, int index)
         {
-            var beginningOfNestedBlock = LineContainsStartOfBlock(currentLine);
-            if (beginningOfNestedBlock)
+            var preprocessingResult = new PreprocessingResult
             {
-                var nestedTag = GetFirstTagPair(currentLine, BlockTagPrefix);
-                var nestedBlockDescription = new NestedBlockDescription
+                TemplateLines = TemplateLines,
+                Placeholders = new List<TemplatePlaceholder>(),
+            };
+            InjectExistingPlaceholdersIfAvailable(preprocessingResult);
+            var nestingFound = false;
+            var innerPlaceholders = GetPlaceholdersInBlockContent(blockContent);
+            var list = targetProperty.GetValue(ValuesObject) as ICollection;
+            var listEnumerator = list.GetEnumerator();
+            var listItemIndex = 0;
+            var nestingStartTag = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStartRawTag);
+            var nestingStopTag = new TagPair(string.Empty, LoopsPreprocessor.ObjectNestingStopRawTag);
+
+            while (listEnumerator.MoveNext())
+            {
+                var newLines = new List<string>
                 {
-                    ChildTag = nestedTag,
-                    ParentTag = blockTag,
+                    $"{nestingStartTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStartTag.ClosingTag}",
                 };
-                _nestedBlockDescriptions.Add(nestedBlockDescription);
-            }
-        }
 
-        private List<string> GetBlockContent(TagPair blockTags, int index)
-        {
-            var blockContent = new List<string>();
-            var openingTagStart = TemplateLines[index].IndexOf(blockTags.OpeningTag, StringComparison.InvariantCulture);
-            var contentStart = openingTagStart + blockTags.OpeningTag.Length;
-            var hasAdditionalContentOnLine = TemplateLines[index].Length > contentStart;
-            if (hasAdditionalContentOnLine)
-            {
-                var targetContent = TemplateLines[index].Substring(contentStart);
-                CacheNestedBlockIfRequired(targetContent, blockTags);
-                blockContent.Add(targetContent);
-            }
+                var currentNestedTagPair = default(TagPair);
+                for (var i = 0; i < blockContent.Count; i++)
+                {
+                    currentNestedTagPair = GetCurrentNestedTagIfExists(currentNestedTagPair, blockContent[i]);
+                    var isInNestedBlock = currentNestedTagPair != null;
+                    nestingFound = nestingFound || isInNestedBlock;
+                    var processedLine = GetLineWithInnerPlaceHoldersReplaced(blockContent[i], innerPlaceholders, i, targetProperty.Name, listEnumerator.Current, preprocessingResult, listItemIndex, isInNestedBlock);
+                    newLines.Add(processedLine);
+                }
 
-            TemplateLines.RemoveAt(index);
-            while (LineDoesNotHaveClosingTag(index, blockTags.ClosingTag) && NotAtLastLine(index))
-            {
-                var currentLine = TemplateLines[index];
-                CacheNestedBlockIfRequired(currentLine, blockTags);
-                blockContent.Add(currentLine);
-                TemplateLines.RemoveAt(index);
-            }
+                newLines.Add($"{nestingStopTag.OpeningTag}{targetProperty.Name}-{listItemIndex}{nestingStopTag.ClosingTag}");
+                var innerPreprocessingResult = JsonConvert.DeserializeObject<PreprocessingResult>(JsonConvert.SerializeObject(preprocessingResult));
+                innerPreprocessingResult.TemplateLines = newLines;
+                innerPreprocessingResult = HandleNestingIfRequired(nestingFound, innerPreprocessingResult, listEnumerator.Current);
+                preprocessingResult.TemplateLines.InsertRange(index, innerPreprocessingResult.TemplateLines);
+                foreach (var innerPlaceholder in innerPreprocessingResult.Placeholders)
+                {
+                    preprocessingResult.Placeholders = preprocessingResult.Placeholders.Where(a => !a.Placeholder.Equals(innerPlaceholder.Placeholder, StringComparison.InvariantCulture)).ToList();
+                    preprocessingResult.Placeholders.Add(innerPlaceholder);
+                }
 
-            blockContent.Add(GetBlockContentFromLastLine(blockTags, index));
-            CleanClosingTagOffLastLine(blockTags.ClosingTag, index);
-            return blockContent;
-        }
+                //preprocessingResult = HandleNestingIfRequired(nestingFound, preprocessingResult, listEnumerator.Current);
 
-        private string GetBlockContentFromLastLine(TagPair blockTags, int index)
-        {
-            var indexOfClosingTag = TemplateLines[index].IndexOf(blockTags.ClosingTag, StringComparison.InvariantCulture);
-
-            if (indexOfClosingTag < 0)
-            {
-                throw new Exception($"Tag {blockTags.OpeningTag} is not closed");
+                index += innerPreprocessingResult.TemplateLines.Count; // + preprocessingResult.TotalNewLinesAfterHandlingNesting;
+                listItemIndex++;
             }
 
-            var line = TemplateLines[index].Substring(0, indexOfClosingTag);
-            CacheNestedBlockIfRequired(line, blockTags);
-            return line;
-        }
-
-        private void CleanClosingTagOffLastLine(string closingTag, int index)
-        {
-            var indexOfClosingTag = TemplateLines[index].IndexOf(closingTag);
-            var subStringStart = indexOfClosingTag + closingTag.Length + 1;
-            var hasAdditionalContentAfterClosingTag = TemplateLines[index].Length > subStringStart;
-            if (hasAdditionalContentAfterClosingTag)
-            {
-                TemplateLines[index] = TemplateLines[index].Substring(subStringStart);
-            }
-            else
-            {
-                TemplateLines.RemoveAt(index);
-            }
-        }
-
-        private bool NotAtLastLine(int index)
-        {
-            return index < TemplateLines.Count;
-        }
-
-        private bool LineDoesNotHaveClosingTag(int index, string closingTag)
-        {
-            return TemplateLines[index].IndexOf(closingTag) < 0;
-        }
-
-        private string GetAssociatedPropertyName(string rawTag)
-        {
-            return rawTag.Substring(BlockTagPrefix.Length - 1);
+            return preprocessingResult;
         }
 
         private int GetPropertyElementLength(PropertyInfo targetProperty)
@@ -452,6 +315,152 @@
                     return asCollection.Count;
                 }
             }
+        }
+
+        private string GetReplacementPlaceholder(string propertyName, string placeholderName, bool isToStringPlaceholder, int listItemIndex, bool isInNestedBlock)
+        {
+            if (isToStringPlaceholder || isInNestedBlock)
+            {
+                return "{{" + GetPlaceholderPrefixIfRequired() + placeholderName + "}}";
+            }
+            else
+            {
+                return $"{{{{{propertyName}{GetPlaceholderPrefixIfRequired()}-{listItemIndex}-{placeholderName}}}}}";
+            }
+        }
+
+        private void GrowResult(PreprocessingResult result, PreprocessingResult injectionResult)
+        {
+            var hasInjectionResult = injectionResult != null;
+            if (hasInjectionResult)
+            {
+                var hasInjectionTemplateLines = injectionResult.TemplateLines != null && injectionResult.TemplateLines.Count > 0;
+                var hasInjectionPlaceHolders = injectionResult.Placeholders != null && injectionResult.Placeholders.Count > 0;
+                if (hasInjectionTemplateLines)
+                {
+                    result.TemplateLines = injectionResult.TemplateLines;
+                }
+
+                if (hasInjectionPlaceHolders)
+                {
+                    result.Placeholders.AddRange(injectionResult.Placeholders);
+                }
+            }
+        }
+
+        private PreprocessingResult HandleNestingIfRequired(bool nestingFound, PreprocessingResult preprocessingResult, object currentObject)
+        {
+            preprocessingResult.TotalNewLinesAfterHandlingNesting = 0;
+            if (nestingFound)
+            {
+                var linesBeforeRecursion = preprocessingResult.TemplateLines.Count;
+                var nestingLevel = CurrentNestingLevel + 1;
+                var key = Guid.NewGuid().ToString();
+                preprocessingResult = new LoopsPreprocessor(currentObject, preprocessingResult.TemplateLines, CurrentNestingLevel + 1, key, preprocessingResult.Placeholders)
+                    .PreProcess();
+                var linesAfterRecursion = preprocessingResult.TemplateLines.Count;
+                var totalNewLinesFromRecursion = linesAfterRecursion - linesBeforeRecursion;
+                using (var validator = new DataValidator())
+                {
+                    validator.EvaluateImmediate(totalNewLinesFromRecursion < 0, "Decrement of lines after recursion for nested blocks in templates has not been tested.");
+                }
+
+                preprocessingResult.TotalNewLinesAfterHandlingNesting = totalNewLinesFromRecursion;
+            }
+
+            return preprocessingResult;
+        }
+
+        private PreprocessingResult InjectBlocks(int index)
+        {
+            var blockTags = GetFirstTagPair(TemplateLines[index], BlockTagPrefix);
+            if (blockTags == null)
+            {
+                return null;
+            }
+            else
+            {
+                var blockContent = GetBlockContent(blockTags, index);
+
+                return InsertCopiesOfBlock(blockContent, blockTags.RawTag, index);
+            }
+        }
+
+        private PreprocessingResult InjectCopiesOfBlock(List<string> blockContent, PropertyInfo targetProperty, int index)
+        {
+            var copies = GetPropertyElementLength(targetProperty);
+            if (copies == 0)
+            {
+                return null;
+            }
+            else
+            {
+                return GetProcessingResult(blockContent, targetProperty, index);
+            }
+        }
+
+        private void InjectExistingPlaceholdersIfAvailable(PreprocessingResult preprocessingResult)
+        {
+            if (ExistingPlaceholders != null && ExistingPlaceholders.Count > 0)
+            {
+                preprocessingResult.Placeholders.AddRange(ExistingPlaceholders);
+            }
+        }
+
+        private PreprocessingResult InsertCopiesOfBlock(List<string> blockContent, string rawTag, int index)
+        {
+            if (ValuesObject == null)
+            {
+                return null;
+            }
+            else
+            {
+                var propertyName = GetAssociatedPropertyName(rawTag);
+                var targetProperty = GetProperty(BlockTagPrefix, propertyName);
+                return InjectCopiesOfBlock(blockContent, targetProperty, index);
+            }
+        }
+
+        private bool IsCachedTag(TagPair tagPair)
+        {
+            var cachedInstance = _nestedBlockDescriptions.FirstOrDefault(a => a.ChildTag.RawTag.Equals(tagPair.RawTag, StringComparison.InvariantCulture));
+            return cachedInstance != null;
+        }
+
+        private bool LineContainsBlockTagClose(string line, TagPair tagPair)
+        {
+            return line.Contains(tagPair.ClosingTag, StringComparison.InvariantCulture);
+        }
+
+        private bool LineContainsStartOfBlock(string line)
+        {
+            var indexOfStarting = line.IndexOf(BlockTagPrefix, StringComparison.InvariantCulture);
+            var startOfBlockFound = indexOfStarting >= 0;
+            if (startOfBlockFound)
+            {
+                var tagPair = GetFirstTagPair(line, BlockTagPrefix);
+                using (var validator = new DataValidator())
+                {
+                    validator.EvaluateImmediate(tagPair == null, $"Contrary to expectation, could not find a block opening tag on line '{line}'");
+                }
+
+                var isValidForCurrentLevel = IsCachedTag(tagPair) == false;
+                return isValidForCurrentLevel;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private bool LineDoesNotHaveClosingTag(int index, string closingTag)
+        {
+            return TemplateLines[index].IndexOf(closingTag) < 0;
+        }
+
+        private bool NotAtLastLine(int index)
+        {
+            return index < TemplateLines.Count;
         }
     }
 }
