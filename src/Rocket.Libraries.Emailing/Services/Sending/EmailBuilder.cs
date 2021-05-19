@@ -240,17 +240,13 @@ namespace Rocket.Libraries.Emailing.Services.Sending
         {
             try
             {
-                var filePlaceholderProcessor = new FilePlaceholderProcessor(TemplateReader);
-                PreprocessObjectTemplatesIfRequired();
-                FailIfContentMissing();
-                PreprocessForDevelopmentIfNeeded();
+                var filePlaceholderProcessor = ParseTemplate();
                 var sparkPostClient = new SparkPostClient(_sparkPostOptions);
                 var transmission = new Transmission();
                 transmission.Content.From.EMail = _senderInformation.SenderEmail;
                 transmission.Content.From.Name = PlaceholderWriter.GetWithPlaceholdersReplaced(_senderInformation.SenderName, _placeholders);
                 transmission.Content.Subject = PlaceholderWriter.GetWithPlaceholdersReplaced(_subject, _placeholders);
-                _body = filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
-                transmission.Content.Html = PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
+                transmission.Content.Html = GetBody(filePlaceholderProcessor);
                 Logger?.LogDebug("Out going email body");
                 Logger?.LogDebug(transmission.Content.Html);
                 InjectRecepients(transmission);
@@ -267,6 +263,12 @@ namespace Rocket.Libraries.Emailing.Services.Sending
             {
                 CleanUp();
             }
+        }
+
+        public string GetHtml()
+        {
+            var filePlaceholderProcessor = ParseTemplate();
+            return GetBody(filePlaceholderProcessor);
         }
 
         /// <summary>
@@ -399,6 +401,12 @@ namespace Rocket.Libraries.Emailing.Services.Sending
             }
         }
 
+        private string GetBody(FilePlaceholderProcessor filePlaceholderProcessor)
+        {
+            _body = filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
+            return PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
+        }
+
         private string GetStringFromList(List<string> lines)
         {
             var stringBuilder = new StringBuilder();
@@ -428,6 +436,15 @@ namespace Rocket.Libraries.Emailing.Services.Sending
             {
                 return test.Equals(recepient, StringComparison.InvariantCultureIgnoreCase);
             }
+        }
+
+        private FilePlaceholderProcessor ParseTemplate()
+        {
+            var filePlaceholderProcessor = new FilePlaceholderProcessor(TemplateReader);
+            PreprocessObjectTemplatesIfRequired();
+            FailIfContentMissing();
+            PreprocessForDevelopmentIfNeeded();
+            return filePlaceholderProcessor;
         }
 
         private void PreprocessForDevelopmentIfNeeded()
