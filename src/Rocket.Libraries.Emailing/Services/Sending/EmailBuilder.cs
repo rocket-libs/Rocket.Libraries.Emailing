@@ -474,6 +474,7 @@ namespace Rocket.Libraries.Emailing.Services.Sending
                 _ccList.Clear();
                 _recepients.Clear();
                 _recepients.Add(EmailingSettings.DevelopmentEmail);
+                _primaryRecepient = string.Empty;
                 _body = debugInfo + "<br/><br/>" + _body + "<br/><br/>";
             }
         }
