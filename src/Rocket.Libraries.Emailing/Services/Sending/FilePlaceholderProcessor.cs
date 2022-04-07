@@ -15,7 +15,7 @@
             _templateReader = templateReader;
         }
 
-        public string PreprocessFilePlaceholdersIfRequired(string content, List<FilePlaceholder> filePlaceholders)
+        public string PreprocessFilePlaceholdersIfRequired(string content, List<FilePlaceholder> filePlaceholders, bool templatePathIsAbsolute)
         {
             if (filePlaceholders == null || filePlaceholders.Count == 0)
             {

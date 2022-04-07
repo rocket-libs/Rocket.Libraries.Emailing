@@ -9,19 +9,26 @@
     {
         private readonly EmailingSettings _emailingSettings;
 
+        private readonly bool templatePathIsAbsolute;
+
         [Obsolete("This parameterless constructor only exists to allow mocking during testing. Using this constructor for production code will almost certainly result in failure")]
         public TemplateReader()
         {
         }
 
-        public TemplateReader(EmailingSettings emailingSettings)
+        public TemplateReader(EmailingSettings emailingSettings, bool templatePathIsAbsolute)
         {
             _emailingSettings = emailingSettings;
+            this.templatePathIsAbsolute = templatePathIsAbsolute;
         }
 
-        public virtual List<string> GetContentFromTemplate(string template)
+        public virtual List<string> GetContentFromTemplate(string templatePath)
         {
-            var templatePath = $@"{_emailingSettings.TemplatesDirectory}/{template}";
+            if (templatePathIsAbsolute == false)
+            {
+                templatePath = $"{_emailingSettings.TemplatesDirectory}/{templatePath}";
+            }
+
             var result = new List<string>();
             ThrowExceptionIfInvalid(templatePath);
             using (var fs = new FileStream(templatePath, FileMode.Open, FileAccess.Read))
@@ -48,7 +55,10 @@
             {
                 if (!Directory.Exists(_emailingSettings.TemplatesDirectory))
                 {
-                    throw new Exception($"Templates directory '{_emailingSettings.TemplatesDirectory}' does not exist");
+                    if (templatePathIsAbsolute == false)
+                    {
+                        throw new Exception($"Templates directory '{_emailingSettings.TemplatesDirectory}' does not exist");
+                    }
                 }
             }
 

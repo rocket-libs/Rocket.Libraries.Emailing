@@ -18,6 +18,8 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
     public class EmailBuilder
     {
+        private readonly bool templatePathIsAbsolute;
+
         private Dictionary<string, string> _attachmentFiles = new Dictionary<string, string>();
 
         private string _attachmentName;
@@ -57,10 +59,11 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
         private TemplateReader _templateReader;
 
-        public EmailBuilder()
+        public EmailBuilder(bool templatePathIsAbsolute = false)
         {
             SetConfiguration(new ConfigReader().ReadConfiguration());
             CleanUp();
+            this.templatePathIsAbsolute = templatePathIsAbsolute;
         }
 
         public ImmutableList<TemplatePlaceholder> PlaceHolders => _placeholders != null ? _placeholders.ToImmutableList() : ImmutableList<TemplatePlaceholder>.Empty;
@@ -130,7 +133,7 @@ namespace Rocket.Libraries.Emailing.Services.Sending
             {
                 if (_templateReader == null)
                 {
-                    _templateReader = new TemplateReader(EmailingSettings);
+                    _templateReader = new TemplateReader(EmailingSettings, templatePathIsAbsolute);
                 }
 
                 return _templateReader;
@@ -403,7 +406,7 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
         private string GetBody(FilePlaceholderProcessor filePlaceholderProcessor)
         {
-            _body = filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders);
+            _body = filePlaceholderProcessor.PreprocessFilePlaceholdersIfRequired(_body, _filePlaceholders, templatePathIsAbsolute);
             return PlaceholderWriter.GetWithPlaceholdersReplaced(_body, _placeholders);
         }
 
