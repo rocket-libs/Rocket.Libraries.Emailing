@@ -18,6 +18,8 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
     public class EmailBuilder
     {
+        private readonly bool muteDebugInformation;
+
         private readonly bool templatePathIsAbsolute;
 
         private Dictionary<string, string> _attachmentFiles = new Dictionary<string, string>();
@@ -59,11 +61,14 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
         private TemplateReader _templateReader;
 
-        public EmailBuilder(bool templatePathIsAbsolute = false)
+        public EmailBuilder(
+            bool templatePathIsAbsolute = false,
+            bool muteDebugInformation = false)
         {
             SetConfiguration(new ConfigReader().ReadConfiguration());
             CleanUp();
             this.templatePathIsAbsolute = templatePathIsAbsolute;
+            this.muteDebugInformation = muteDebugInformation;
         }
 
         public ImmutableList<TemplatePlaceholder> PlaceHolders => _placeholders != null ? _placeholders.ToImmutableList() : ImmutableList<TemplatePlaceholder>.Empty;
@@ -452,7 +457,7 @@ namespace Rocket.Libraries.Emailing.Services.Sending
 
         private void PreprocessForDevelopmentIfNeeded()
         {
-            if (EmailingSettings.IsDevelopment)
+            if (EmailingSettings.IsDevelopment && muteDebugInformation == false)
             {
                 var debugInfo = string.Empty;
                 Action<string, string> appendLine = (key, value) => debugInfo += $"<b>{key}:</b> {value}<br/>";
