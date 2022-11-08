@@ -8,7 +8,7 @@
 
     public static class MailReceiverFactory
     {
-        public static MailReceiverBase<TClient> Create<TClient>()
+        public static MailReceiverBase<TClient> Create<TClient>(TClient externalClient = default)
         {
             if (typeof(TClient) == typeof(ImapClient))
             {
@@ -16,7 +16,7 @@
             }
             else if (typeof(TClient) == typeof(Pop3Client))
             {
-                return new Pop3Receiver() as MailReceiverBase<TClient>;
+                return new Pop3Receiver(externalClient as Pop3Client) as MailReceiverBase<TClient>;
             }
             else
             {

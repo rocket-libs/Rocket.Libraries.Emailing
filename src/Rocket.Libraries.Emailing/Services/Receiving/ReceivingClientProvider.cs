@@ -8,17 +8,19 @@
 
     public class ReceivingClientProvider<TClient> : IDisposable
     {
-        private Func<TClient> _funcLoglessConstructor;
+        private Func<TClient, MailServerSettings, Task> _funcAuthenticator;
+
+        private Func<TClient, MailServerSettings, Task> _funcConnect;
 
         private Func<ProtocolLogger, TClient> _funcLoggingConstructor;
+
+        private Func<TClient> _funcLoglessConstructor;
 
         private string _logFilename;
 
         private MailServerSettings _mailServerSettings;
 
-        private Func<TClient, MailServerSettings, Task> _funcConnect;
-
-        private Func<TClient, MailServerSettings, Task> _funcAuthenticator;
+        private TClient externalClient;
 
         private ProtocolLogger ProtocolLogger { get; set; }
 
@@ -28,27 +30,26 @@
             ProtocolLogger = null;
         }
 
-        public ReceivingClientProvider<TClient> SetLogLessConstructor(Func<TClient> funcLoglessConstrutor)
+        public virtual async Task<TClient> GetClientAsync()
         {
-            _funcLoglessConstructor = funcLoglessConstrutor;
-            return this;
+            if (externalClient != null)
+            {
+                return externalClient;
+            }
+            else
+            {
+                FailIfInvalid();
+                CreateProtocolLoggerIfPossible();
+                var client = ProtocolLogger != null ? _funcLoggingConstructor(ProtocolLogger) : _funcLoglessConstructor();
+                await _funcConnect(client, _mailServerSettings);
+                await _funcAuthenticator(client, _mailServerSettings);
+                return client;
+            }
         }
 
-        public ReceivingClientProvider<TClient> SetLoggingConstructor(Func<ProtocolLogger, TClient> funcLoggingConstructor)
+        public ReceivingClientProvider<TClient> SetAuthenticatorCall(Func<TClient, MailServerSettings, Task> funcAuthenticator)
         {
-            _funcLoggingConstructor = funcLoggingConstructor;
-            return this;
-        }
-
-        public ReceivingClientProvider<TClient> SetLogFilename(string logFilename)
-        {
-            _logFilename = logFilename;
-            return this;
-        }
-
-        public ReceivingClientProvider<TClient> SetMailServerSettings(MailServerSettings mailServerSettings)
-        {
-            _mailServerSettings = mailServerSettings;
+            _funcAuthenticator = funcAuthenticator;
             return this;
         }
 
@@ -58,20 +59,43 @@
             return this;
         }
 
-        public ReceivingClientProvider<TClient> SetAuthenticatorCall(Func<TClient, MailServerSettings, Task> funcAuthenticator)
+        public ReceivingClientProvider<TClient> SetExternalClient(TClient client)
         {
-            _funcAuthenticator = funcAuthenticator;
+            externalClient = client;
             return this;
         }
 
-        public virtual async Task<TClient> GetClientAsync()
+        public ReceivingClientProvider<TClient> SetLogFilename(string logFilename)
         {
-            FailIfInvalid();
-            CreateProtocolLoggerIfPossible();
-            var client = ProtocolLogger != null ? _funcLoggingConstructor(ProtocolLogger) : _funcLoglessConstructor();
-            await _funcConnect(client, _mailServerSettings);
-            await _funcAuthenticator(client, _mailServerSettings);
-            return client;
+            _logFilename = logFilename;
+            return this;
+        }
+
+        public ReceivingClientProvider<TClient> SetLoggingConstructor(Func<ProtocolLogger, TClient> funcLoggingConstructor)
+        {
+            _funcLoggingConstructor = funcLoggingConstructor;
+            return this;
+        }
+
+        public ReceivingClientProvider<TClient> SetLogLessConstructor(Func<TClient> funcLoglessConstrutor)
+        {
+            _funcLoglessConstructor = funcLoglessConstrutor;
+            return this;
+        }
+
+        public ReceivingClientProvider<TClient> SetMailServerSettings(MailServerSettings mailServerSettings)
+        {
+            _mailServerSettings = mailServerSettings;
+            return this;
+        }
+
+        private void CreateProtocolLoggerIfPossible()
+        {
+            var hasLogFilename = !string.IsNullOrEmpty(_logFilename);
+            if (hasLogFilename)
+            {
+                ProtocolLogger = new ProtocolLogger(_logFilename);
+            }
         }
 
         private void FailIfInvalid()
@@ -85,15 +109,6 @@
                     .AddFailureCondition(_funcConnect == null, "Connector function is not specified. Cannot connect to mail server", false)
                     .AddFailureCondition(_funcAuthenticator == null, "Authenticator function is not specified. Cannot authenticate against mail server", false)
                     .ThrowExceptionOnInvalidRules();
-            }
-        }
-
-        private void CreateProtocolLoggerIfPossible()
-        {
-            var hasLogFilename = !string.IsNullOrEmpty(_logFilename);
-            if (hasLogFilename)
-            {
-                ProtocolLogger = new ProtocolLogger(_logFilename);
             }
         }
     }
