@@ -13,6 +13,16 @@
     {
         private ReceivingClientProvider<Pop3Client> _clientProvider;
 
+        public Pop3Receiver()
+            : this(default)
+        {
+        }
+
+        public Pop3Receiver(Pop3Client externalClient)
+            : base(externalClient)
+        {
+        }
+
         public override ReceivingClientProvider<Pop3Client> ClientProvider
         {
             get
@@ -25,7 +35,8 @@
                         .SetLogFilename(LogFilename)
                         .SetLoggingConstructor((protocolLogger) => new Pop3Client(protocolLogger))
                         .SetLogLessConstructor(() => new Pop3Client())
-                        .SetMailServerSettings(MailServerSettings);
+                        .SetMailServerSettings(MailServerSettings)
+                        .SetExternalClient(ExternalClient);
                 }
 
                 return _clientProvider;
